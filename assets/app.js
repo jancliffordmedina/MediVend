@@ -374,7 +374,7 @@ function cartMarkup() {
     </div>`).join('') : `<div class="empty"><span class="empty-icon">${icon('bag')}<span>+</span></span><h3>A little empty here.</h3><p>Add something from the collection<br>to get started.</p></div>`}</div>
     <div class="cart-bottom"><div class="total"><div><span>Total</span><small>${count} item${count === 1 ? '' : 's'} in your cart</small></div><strong>${money(total())}</strong></div>
     <button class="primary checkout-button" data-action="checkout" ${!count || catalogStatus !== 'ready' ? 'disabled' : ''}>Review order ${icon('arrow')}</button>
-    <p class="cart-note">${icon('shield')} ${machineRuntime.mode === 'simulation' ? 'Demo only. No real payment.' : 'Exact payment only. No change.'}</p></div>
+    <p class="cart-note">${icon('shield')} ${machineRuntime.mode === 'simulation' ? 'No real payment or dispensing.' : 'Exact payment only. No change.'}</p></div>
   </aside>`;
 }
 
@@ -399,7 +399,7 @@ function shop() {
   return `<section class="shop">
     <div class="page-head"><div><p class="eyebrow"><span></span> The clinic collection</p><h1>A little care starts here.</h1><p class="sub">Choose from the clinic’s available medicines.</p></div>${steps(1)}</div>
     <div class="collection-bar"><div><span class="collection-dot"></span><span>All medicines</span><small>${catalogStatus === 'loading' ? '…' : String(catalogStatus === 'ready' ? products.length : 0).padStart(2, '0')}</small></div><span class="collection-price">${catalogPriceLabel()}</span></div>
-    <div class="shop-layout"><div class="catalog"><div class="products" aria-busy="${catalogStatus === 'loading'}">${catalogStatus === 'ready' ? products.map(productCard).join('') : catalogStateMarkup()}</div><p class="catalog-note">${icon('shield')} Choose medicines with clinic staff guidance. ${machineRuntime.mode === 'simulation' ? 'Demo orders do not reserve stock.' : 'Availability is confirmed before dispensing.'}</p></div>${cartMarkup()}</div>
+    <div class="shop-layout"><div class="catalog"><div class="products" aria-busy="${catalogStatus === 'loading'}">${catalogStatus === 'ready' ? products.map(productCard).join('') : catalogStateMarkup()}</div><p class="catalog-note">${icon('shield')} Choose medicines with clinic staff guidance. ${machineRuntime.mode === 'simulation' ? 'Orders do not reserve stock.' : 'Availability is confirmed before dispensing.'}</p></div>${cartMarkup()}</div>
   </section>`;
 }
 
@@ -412,8 +412,8 @@ function checkout() {
   return `<section class="checkout"><button class="back" data-action="shop" ${locked ? 'disabled' : ''}>${icon('back')} Back to collection</button>
     <div class="page-head"><div><p class="eyebrow">Almost there</p><h1>One last look.</h1><p class="sub">Review your items before saving your order.</p></div>${steps(2)}</div>
     <div class="checkout-grid"><div class="panel order-panel"><div class="panel-heading"><h2>Your selection</h2><span class="count">${quantity()} item${quantity() === 1 ? '' : 's'}</span></div>${products.filter(product => cart.has(product.id)).map(product => summaryLine(product, cart.get(product.id))).join('')}<div class="total"><span>Estimated total</span><strong>${money(total())}</strong></div><p class="notice">Final prices are confirmed when your order is saved.</p></div>
-    <div class="panel checkout-panel ${checkoutError ? 'has-error' : ''}" aria-busy="${checkoutBusy}"><span class="panel-icon">${icon('shield')}</span><h2>Confirm your order.</h2><p class="sub">${machineRuntime.mode === 'simulation' ? 'Test payment and delivery with simulation controls. No real coins or hardware are connected.' : 'Accepted coins: ₱1 · ₱5 · ₱10 · ₱20. Exact payment only. No change.'}</p>
-    ${checkoutAttempt ? '' : `<label class="check-label"><input id="ack" type="checkbox" ${checkoutAcknowledged ? 'checked' : ''}><span>${machineRuntime.mode === 'simulation' ? 'I understand this is a simulation. Confirmed demo delivery changes database stock only.' : 'I have reviewed my items and understand that no change can be returned.'}</span></label>`}
+    <div class="panel checkout-panel ${checkoutError ? 'has-error' : ''}" aria-busy="${checkoutBusy}"><span class="panel-icon">${icon('shield')}</span><h2>Confirm your order.</h2><p class="sub">${machineRuntime.mode === 'simulation' ? 'Test coins and delivery only. No real payment or dispensing.' : 'Accepted coins: ₱1 · ₱5 · ₱10 · ₱20. Exact payment only. No change.'}</p>
+    ${checkoutAttempt ? '' : `<label class="check-label"><input id="ack" type="checkbox" ${checkoutAcknowledged ? 'checked' : ''}><span>${machineRuntime.mode === 'simulation' ? 'I understand that delivery confirmations change test stock only.' : 'I have reviewed my items and understand that no change can be returned.'}</span></label>`}
     ${checkoutError ? `<p class="checkout-error" role="alert">${escapeHtml(checkoutError)}</p>` : ''}
     <button id="complete" class="primary" data-action="complete" ${checkoutBusy || (!checkoutAttempt && (!checkoutAcknowledged || catalogStatus !== 'ready')) ? 'disabled' : ''}>${checkoutBusy ? '<span class="button-spinner" aria-hidden="true"></span>Saving order…' : checkoutAttempt ? `Retry save ${icon('arrow')}` : `Save order ${icon('arrow')}`}</button>
     <p class="cart-note">${checkoutAttempt ? 'Retrying checks the same order, without creating a second one.' : 'You can go back and edit your items before saving.'}</p></div></div>
@@ -557,7 +557,7 @@ async function loadMachine() {
   const simulation = machineRuntime.mode === 'simulation';
   document.body.classList.toggle('hardware-mode', !simulation);
   document.querySelector('.demo').hidden = !simulation;
-  document.querySelector('#mode-footer').textContent = simulation ? 'Clinic demo · No real payment or dispensing' : 'Exact payment only. No change.';
+  document.querySelector('#mode-footer').textContent = simulation ? 'No real payment or dispensing' : 'Exact payment only. No change.';
   document.querySelector('#staff-description').textContent = 'Your order and recorded credit are preserved. Keep this reference for staff assistance. No refund has been issued.';
   if (!appBooted) {
     appBooted = true;

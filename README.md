@@ -6,6 +6,8 @@ For Orange Pi One setup, use [the installation and deployment guide](docs/orange
 
 Saving an order creates a `transactions` row and its `transaction_items` snapshots, initially payment **pending** and dispensing **not_started**. Demo coin events are stored persistently in `demo_coin_events` and update the balance atomically. Only a newly confirmed simulated delivery changes demo-product stock. **Real payments and physical hardware are never connected.**
 
+Use the separate [staff stock room](docs/staff-stock.md) to sign in, add medicine quantities and review restock history. Existing Orange Pi installations should apply only migration `005_staff_stock.sql` for this update, then create staff credentials in the private environment as described in that guide. No default staff account is enabled.
+
 ## Run through XAMPP
 
 1. Keep this project at `C:\xampp\htdocs\MediVend`.
@@ -13,8 +15,8 @@ Saving an order creates a `transactions` row and its `transaction_items` snapsho
 3. Use the existing `medivend_db` database. On a fresh machine, import your original `medivend_db.sql` in [phpMyAdmin](http://localhost/phpmyadmin/), then apply the additive migration and current-price update below.
 4. Check `config/database.php`: host `localhost`, port `3306`, database `medivend_db`, username `root`, and an empty password. XAMPP's `pdo_mysql` extension must be enabled.
 5. Open **[http://localhost/MediVend/](http://localhost/MediVend/)**. Tap **Get Started**, choose medicines, open **Review order**, acknowledge the demo, and tap **Save order**.
-6. The **Demo payment** screen shows the saved reference, total due, amount inserted, remaining balance, and accepted denominations. Test with **Demo insert ₱1 / ₱5 / ₱10 / ₱20**. It displays **Exact payment only. This machine cannot return change.**
-7. After **Demo payment complete**, tap **Simulate dispensing**, then simulate each confirmed unit or a fault. These controls change demo database records only.
+6. The **Payment** screen shows the saved reference, total due, amount inserted, remaining balance, and accepted denominations. The persistent **Test mode** badge identifies the simulation. Test with **Insert ₱1**, **Insert ₱5**, **Insert ₱10** or **Insert ₱20**. It displays **Exact payment only. This machine cannot return change.**
+7. After **Payment complete.**, tap **Dispense**, then **Confirm 1 unit · [medicine]** for each test delivery, or choose **Jam** or **No confirmation** to test a fault. These controls change demo database records only; no real coins or dispensing hardware are connected.
 
 Use Apache rather than opening `index.html` directly or using a static-only server. No Composer packages, npm installation, build step, or internet connection is required.
 
@@ -100,7 +102,7 @@ Overpayment errors explain the smaller supported **simulated** denominations tha
 
 Delivery responses still use a `state_token` tied to the saved order/counters; stale delivery tokens return **409 stale_event** without consuming another unit. Coin payments instead use the persistent event ledger above, so safe coin retries do not depend on an old balance token.
 
-Coin controls disable while a request or unresolved coin is pending. **Retry same demo coin event** resends exactly the persisted ID/denomination. **Refresh status** uses `X-Demo-Event-ID` to look up that event without resending it: accepted/rejected outcomes are recovered from the ledger; if absent, the same event can be retried explicitly. Only PHP-confirmed state updates the amounts. The order/credit cannot be reset during uncertain results. Delivery confirmations are never automatically resent. After an uncertain delivery request, Refresh status (including reload recovery) first reads the saved counters. If the order is still incomplete, it posts `no_confirmation` with the fresh state token to stop the simulation as `needs_review`. It preserves confirmed units and credit. A fully confirmed completed order remains completed. If stopping cannot be confirmed, the error remains visible and no successful stop is claimed.
+Coin controls disable while a request or unresolved coin is pending. **Retry same coin event** resends exactly the persisted ID/denomination. **Refresh status** uses `X-Demo-Event-ID` to look up that event without resending it: accepted/rejected outcomes are recovered from the ledger; if absent, the same event can be retried explicitly. Only PHP-confirmed state updates the amounts. The order/credit cannot be reset during uncertain results. Delivery confirmations are never automatically resent. After an uncertain delivery request, Refresh status (including reload recovery) first reads the saved counters. If the order is still incomplete, it posts `no_confirmation` with the fresh state token to stop the simulation as `needs_review`. It preserves confirmed units and credit. A fully confirmed completed order remains completed. If stopping cannot be confirmed, the error remains visible and no successful stop is claimed.
 
 ## Test through XAMPP
 
@@ -135,12 +137,12 @@ See [the purchase-flow audit](docs/purchase-flow-audit.md) for verified results,
 For a manual browser check:
 
 1. After migrating, add two Paracetamol items and one Cetirizine. Review shows **₱30.00**.
-2. Acknowledge the demo and tap **Save order**, including a quick repeated tap. One saved reference and **₱30.00** should appear on **Demo payment**.
+2. Check that **Test mode** is visible, acknowledge the test and tap **Save order**, including a quick repeated tap. One saved reference and **₱30.00** should appear on **Payment**.
 3. In phpMyAdmin, inspect `transactions` and `transaction_items`. Confirm one order for that reference, matching item snapshots, `pending` / `not_started`, zero paid/dispensed amounts, and unchanged product stock.
 4. To test a connection failure, stop MySQL **after opening checkout review**, then save. The cart remains. Restart MySQL and tap **Retry save**; the original request key is reused.
-5. Insert two **demo ₱10** coins, one **demo ₱5**, and five **demo ₱1** coins. The balance becomes zero and **Demo payment complete** appears. Confirm `amount_paid_centavos = 3000`, payment `paid`, dispensing still `not_started`, and eight accepted ledger rows. A new event after that is rejected; retrying an old event never adds credit.
-6. Before full payment, try Start over: staff assistance must appear and the order/inserted credit must remain. Reload, or close/reopen the tab in the same browser, to recover that order. For a ₱4 remainder, only demo ₱1 coins fit; overpayment explains the smaller denomination.
-7. After full payment, tap **Simulate dispensing**. Confirm a unit or simulate a jam. Staff review preserves credit and partial delivery; it does not complete or refund the order. A fully delivered simulation can finish the session. Manual delivery tests consume **demo database stock**; use suitable test inventory.
+5. Tap **Insert ₱10** twice, **Insert ₱5** once and **Insert ₱1** five times. These are test buttons; do not insert real money. The balance becomes zero and **Payment complete.** appears. Confirm `amount_paid_centavos = 3000`, payment `paid`, dispensing still `not_started`, and eight accepted ledger rows. A new event after that is rejected; retrying an old event never adds credit.
+6. Before full payment, try Start over: staff assistance must appear and the order/inserted credit must remain. Reload, or close/reopen the tab in the same browser, to recover that order. For a ₱4 remainder, only **Insert ₱1** fits; overpayment explains the smaller test denomination.
+7. After full payment, tap **Dispense**. Use **Confirm 1 unit · [medicine]** to record one test delivery, or **Jam** or **No confirmation** to stop with a test fault. Staff review preserves credit and partial delivery; it does not complete or refund the order. A fully delivered simulation shows **Delivery test complete.** and can **Finish session**. Manual delivery tests consume **demo database stock**; use suitable test inventory.
 
 Useful read-only inspection queries in phpMyAdmin:
 

@@ -87,7 +87,7 @@ const DemoFlow = (() => {
       const payload = await response.json();
       if (payload.order) apply(payload);
       if (!response.ok) {
-        error = payload.error?.message || 'Simulation unavailable. Refresh status or contact clinic staff.';
+        error = payload.error?.message || 'Test controls unavailable. Refresh status or contact clinic staff.';
         blocked = !payload.order;
         return false;
       }
@@ -101,16 +101,16 @@ const DemoFlow = (() => {
     busy = true; progress = 'Checking saved status…'; error = ''; render();
     try {
       if (await request('demo-order')) {
-        if (pendingCoin) error = 'This demo coin event is not yet confirmed. Retry the same event safely, or contact clinic staff. No credit has been cleared.';
+        if (pendingCoin) error = 'This coin event is not yet confirmed. Retry the same event safely, or contact clinic staff. No credit has been cleared.';
         if (uncertainDelivery && lastOrder && !['completed', 'needs_review', 'cancelled'].includes(lastOrder.orderStatus)) {
           // Recovery may flag an uncertain run for review, but never repeats the
           // delivery or infers another confirmed unit from a network failure.
           if (await request('demo-dispense', { state_token: lastOrder.token, action: 'no_confirmation', product_id: null })) {
-            error = 'Please contact clinic staff. The uncertain delivery simulation has stopped. Confirmed units are preserved; no delivery was retried and no refund was issued.';
+            error = 'Please contact clinic staff. The uncertain delivery test has stopped. Confirmed units are preserved; no delivery was retried and no refund was issued.';
           }
         }
       }
-    } catch { blocked = true; error = 'Saved status could not be checked. Your order and recorded credit are preserved. Retry the same demo coin event if shown, or refresh status / contact clinic staff.'; }
+    } catch { blocked = true; error = 'Saved status could not be checked. Your order and recorded credit are preserved. Retry the same coin event if shown, or refresh status / contact clinic staff.'; }
     finally { busy = false; render(); }
   }
   async function event(kind, fields = {}) {
@@ -129,7 +129,7 @@ const DemoFlow = (() => {
       uncertainDelivery = wasUncertain; blocked = true; render(); return;
     }
     const body = kind === 'payment' ? { ...pendingCoin } : { state_token: lastOrder.token, ...fields };
-    busy = true; progress = kind === 'dispense' ? 'Dispensing…' : 'Confirming demo coin…'; error = ''; render();
+    busy = true; progress = kind === 'dispense' ? 'Recording delivery test…' : 'Confirming coin…'; error = ''; render();
     const showProcessing = new Promise(resolve => setTimeout(resolve, 250));
     try {
       const success = await request('demo-' + kind, body);
@@ -142,7 +142,7 @@ const DemoFlow = (() => {
       blocked = true;
       error = kind === 'dispense'
         ? 'Please contact clinic staff. Delivery could not be confirmed. Refresh status to check saved records; no delivery event will be retried.'
-        : 'Demo coin result is unconfirmed. Retry this same event safely or refresh status. Your order and credit are preserved.';
+        : 'Coin result is unconfirmed. Retry this same event safely or refresh status. Your order and credit are preserved.';
     } finally { await showProcessing; busy = false; render(); }
   }
   function action(button) {
@@ -157,7 +157,7 @@ const DemoFlow = (() => {
     if (action === 'demo-no-confirmation') event('dispense', { action: 'no_confirmation', product_id: null });
   }
   function markup() {
-    if (!lastOrder) return '<section class="demo-flow"><div class="catalog-state" role="status"><span class="catalog-state-icon ' + (busy ? 'catalog-spinner' : '') + '">' + (busy ? '' : '!') + '</span><h2>' + (busy ? 'Loading saved order…' : 'Unable to load order') + '</h2><p>' + escapeHtml(error || 'Checking your current demo order.') + '</p><button class="secondary" data-action="demo-refresh" ' + (busy ? 'disabled' : '') + '>Refresh status</button><button class="text-button" data-action="demo-staff">Staff assistance</button></div></section>';
+    if (!lastOrder) return '<section class="demo-flow"><div class="catalog-state" role="status"><span class="catalog-state-icon ' + (busy ? 'catalog-spinner' : '') + '">' + (busy ? '' : '!') + '</span><h2>' + (busy ? 'Loading saved order…' : 'Unable to load order') + '</h2><p>' + escapeHtml(error || 'Checking your saved order.') + '</p><button class="secondary" data-action="demo-refresh" ' + (busy ? 'disabled' : '') + '>Refresh status</button><button class="text-button" data-action="demo-staff">Staff assistance</button></div></section>';
     const order = lastOrder;
     const review = order.orderStatus === 'needs_review', completed = order.orderStatus === 'completed', cancelled = order.orderStatus === 'cancelled';
     const paid = order.paymentStatus === 'paid', running = order.orderStatus === 'processing';
@@ -166,24 +166,24 @@ const DemoFlow = (() => {
     const delivered = order.items.reduce((sum, item) => sum + item.delivered, 0);
     const count = order.items.reduce((sum, item) => sum + item.qty, 0);
     const disabled = busy || blocked || !!pendingCoin || !order.isDemo;
-    const heading = review ? 'Please contact clinic staff' : completed ? 'Demo delivery complete.' : cancelled ? 'Unpaid session closed.' : running ? 'Dispensing…' : paid ? 'Demo payment complete.' : 'Demo payment';
+    const heading = review ? 'Please contact clinic staff' : completed ? 'Delivery test complete.' : cancelled ? 'Unpaid session closed.' : running ? 'Confirm delivery' : paid ? 'Payment complete.' : 'Payment';
     const usable = denominations.filter(coin => coin <= remaining);
-    const guidance = usable.length ? 'For ' + money(remaining) + ' remaining, use simulated ' + usable.map(coin => money(coin).replace('.00', '')).join(' or ') + ' coins.'
-      : 'No supported demo coin fits. Please contact clinic staff.';
-    const coinButtons = denominations.map(coin => '<button class="secondary demo-coin" data-action="demo-coin" data-coin="' + coin + '" ' + (disabled || coin > remaining ? 'disabled' : '') + ' title="' + escapeHtml(coin > remaining ? guidance : 'Simulated coin event only') + '">Demo insert ' + money(coin).replace('.00', '') + '</button>').join('');
-    const coinPanel = '<p class="demo-help"><strong>Exact payment only. This machine cannot return change.</strong></p><p class="demo-denominations">Accepted demo denominations: ₱1 · ₱5 · ₱10 · ₱20</p><div class="demo-coins">' + coinButtons + '</div><p class="notice demo-guidance">' + escapeHtml(guidance) + '</p>';
+    const guidance = usable.length ? 'For ' + money(remaining) + ' remaining, use ' + usable.map(coin => money(coin).replace('.00', '')).join(' or ') + ' coins.'
+      : 'No supported coin fits. Please contact clinic staff.';
+    const coinButtons = denominations.map(coin => '<button class="secondary demo-coin" data-action="demo-coin" data-coin="' + coin + '" ' + (disabled || coin > remaining ? 'disabled' : '') + ' title="' + escapeHtml(coin > remaining ? guidance : 'Record one test coin') + '">Insert ' + money(coin).replace('.00', '') + '</button>').join('');
+    const coinPanel = '<p class="demo-help"><strong>Exact payment only. This machine cannot return change.</strong></p><p class="demo-denominations">Coins: ₱1 · ₱5 · ₱10 · ₱20</p><div class="demo-coins">' + coinButtons + '</div><p class="notice demo-guidance">' + escapeHtml(guidance) + '</p>';
     let controls = '';
-    if (pendingCoin) controls = coinPanel + '<p class="demo-help">An unconfirmed ' + money(pendingCoin.coin_centavos) + ' demo event is kept for recovery. New coin controls are paused.</p>' + (busy ? '' : '<button class="primary" data-action="demo-retry-coin">Retry same demo coin event ' + icon('arrow') + '</button>');
-    else if (review) controls = '<div class="staff-message" role="alert"><strong>Please contact clinic staff.</strong><p>' + (excess ? 'Full inserted amount ' + money(order.paid) + ' is preserved, including ' + money(excess) + ' above the order total. Automatic dispensing is stopped. No change or refund has been returned.' : 'The simulation has stopped. Recorded credit and confirmed deliveries are preserved. No automatic retry or refund has occurred.') + '</p></div>';
-    else if (completed) controls = '<div class="demo-complete">' + icon('check') + '<strong>Every ordered unit is confirmed.</strong><p>Simulation only. No physical hardware was activated.</p></div>';
+    if (pendingCoin) controls = coinPanel + '<p class="demo-help">An unconfirmed ' + money(pendingCoin.coin_centavos) + ' coin event is kept for recovery. New coin controls are paused.</p>' + (busy ? '' : '<button class="primary" data-action="demo-retry-coin">Retry same coin event ' + icon('arrow') + '</button>');
+    else if (review) controls = '<div class="staff-message" role="alert"><strong>Please contact clinic staff.</strong><p>' + (excess ? 'Full inserted amount ' + money(order.paid) + ' is preserved, including ' + money(excess) + ' above the order total. Automatic dispensing is stopped. No change or refund has been returned.' : 'The test has stopped. Recorded credit and confirmed deliveries are preserved. No automatic retry or refund has occurred.') + '</p></div>';
+    else if (completed) controls = '<div class="demo-complete">' + icon('check') + '<strong>Every test unit is confirmed.</strong><p>No physical hardware was activated.</p></div>';
     else if (cancelled) controls = '<div class="demo-complete"><strong>This unpaid session is closed.</strong><p>No credit was accepted or refunded. Start a new session to choose medicines.</p></div>';
     else if (!paid) controls = coinPanel;
     else if (!running) controls = uncertainDelivery
-      ? '<p class="demo-help">Please contact clinic staff. The previous delivery request was uncertain.</p><button class="secondary" data-action="demo-no-confirmation" ' + (disabled ? 'disabled' : '') + '>Simulate no sensor confirmation / stop</button>'
-      : '<p class="demo-help">Demo payment complete. Recheck stock and start the delivery simulation.</p><button class="primary" data-action="demo-start" ' + (disabled ? 'disabled' : '') + '>Simulate dispensing ' + icon('arrow') + '</button>';
-    else controls = '<p class="demo-help">Simulation: confirm one delivered unit, or stop with a test fault.</p><div class="delivery-buttons">' + order.items.filter(item => item.delivered < item.qty).map(item => '<button class="secondary" data-action="demo-delivered" data-id="' + item.id + '" ' + (disabled || uncertainDelivery ? 'disabled' : '') + '>Simulate 1 delivered · ' + escapeHtml(item.name) + '</button>').join('') + '</div><div class="demo-faults"><button class="secondary" data-action="demo-jam" ' + (disabled ? 'disabled' : '') + '>Simulate jam</button><button class="secondary" data-action="demo-no-confirmation" ' + (disabled ? 'disabled' : '') + '>Simulate no sensor confirmation</button></div>';
+      ? '<p class="demo-help">Please contact clinic staff. The previous delivery request was uncertain.</p><button class="secondary" data-action="demo-no-confirmation" ' + (disabled ? 'disabled' : '') + '>Stop: no confirmation</button>'
+      : '<p class="demo-help">Payment complete. Recheck stock and start the delivery test.</p><button class="primary" data-action="demo-start" ' + (disabled ? 'disabled' : '') + '>Dispense ' + icon('arrow') + '</button>';
+    else controls = '<p class="demo-help">Staff test controls: confirm one unit, or stop with a test fault.</p><div class="delivery-buttons">' + order.items.filter(item => item.delivered < item.qty).map(item => '<button class="secondary" data-action="demo-delivered" data-id="' + item.id + '" ' + (disabled || uncertainDelivery ? 'disabled' : '') + '>Confirm 1 unit · ' + escapeHtml(item.name) + '</button>').join('') + '</div><div class="demo-faults"><button class="secondary" data-action="demo-jam" ' + (disabled ? 'disabled' : '') + '>Jam</button><button class="secondary" data-action="demo-no-confirmation" ' + (disabled ? 'disabled' : '') + '>No confirmation</button></div>';
     const protectedCredit = hasCredit() || !!pendingCoin || blocked;
-    return '<section class="demo-flow"><div class="page-head"><div><p class="eyebrow">Demo simulation only</p><h1 class="demo-heading ' + (review ? 'review-heading' : '') + '">' + heading + '</h1><p class="sub">Simulated coins only. Real coin rejection/return capabilities are unverified.</p></div><button class="back" data-action="demo-refresh" ' + (busy ? 'disabled' : '') + '>Refresh status ' + icon('clock') + '</button></div><div class="checkout-grid demo-grid"><div class="panel demo-summary"><div class="order-reference"><span>Saved reference</span><strong>' + escapeHtml(order.reference) + '</strong></div><div class="demo-items">' + order.items.map(item => '<div class="demo-delivery-row">' + summaryLine(item, item.qty) + '<p>' + item.delivered + ' / ' + item.qty + ' units confirmed</p></div>').join('') + '</div><div class="payment-amounts"><div><span>Total due</span><strong>' + money(order.total) + '</strong></div><div><span>Amount inserted</span><strong>' + money(order.paid) + '</strong></div><div><span>Remaining balance</span><strong>' + money(remaining) + '</strong></div></div><div class="order-statuses"><span>' + (cancelled ? 'Unpaid session closed' : paid ? 'Demo paid' : order.paymentStatus === 'partial' ? 'Partial demo payment' : 'Payment pending') + '</span><span>' + (review ? 'Needs review' : completed ? 'Delivery confirmed' : running ? delivered + ' / ' + count + ' confirmed' : 'Dispensing not started') + '</span></div></div><div class="panel demo-controls" aria-busy="' + busy + '">' + (busy ? '<div class="demo-processing" role="status"><span class="button-spinner"></span>' + progress + '</div>' : '') + (error ? '<p class="checkout-error" role="alert">' + escapeHtml(error) + '</p>' : '') + controls + '<p class="notice demo-stock-note">Only a confirmed simulated unit decreases database demo stock.</p></div></div><div class="demo-bottom"><button class="secondary" data-action="' + (protectedCredit ? 'demo-staff' : 'new') + '" ' + (busy ? 'disabled' : '') + '>' + (protectedCredit ? 'Staff assistance' : completed ? 'Finish session' : 'Start a new session') + '</button><p class="notice">' + (protectedCredit ? 'Your saved order and inserted demo credit are preserved. No refund has been issued.' : 'Saved orders and confirmed delivery records remain in the database.') + '</p></div></section>';
+    return '<section class="demo-flow"><div class="page-head"><div><p class="eyebrow">Your saved order</p><h1 class="demo-heading ' + (review ? 'review-heading' : '') + '">' + heading + '</h1><p class="sub">Buttons record test coins and deliveries; no hardware connected.</p></div><button class="back" data-action="demo-refresh" ' + (busy ? 'disabled' : '') + '>Refresh status ' + icon('clock') + '</button></div><div class="checkout-grid demo-grid"><div class="panel demo-summary"><div class="order-reference"><span>Saved reference</span><strong>' + escapeHtml(order.reference) + '</strong></div><div class="demo-items">' + order.items.map(item => '<div class="demo-delivery-row">' + summaryLine(item, item.qty) + '<p>' + item.delivered + ' / ' + item.qty + ' units confirmed</p></div>').join('') + '</div><div class="payment-amounts"><div><span>Total due</span><strong>' + money(order.total) + '</strong></div><div><span>Amount inserted</span><strong>' + money(order.paid) + '</strong></div><div><span>Remaining balance</span><strong>' + money(remaining) + '</strong></div></div><div class="order-statuses"><span>' + (cancelled ? 'Unpaid session closed' : paid ? 'Paid' : order.paymentStatus === 'partial' ? 'Partial payment' : 'Payment pending') + '</span><span>' + (review ? 'Needs review' : completed ? 'Delivery test recorded' : running ? delivered + ' / ' + count + ' confirmed' : 'Dispensing not started') + '</span></div></div><div class="panel demo-controls" aria-busy="' + busy + '">' + (busy ? '<div class="demo-processing" role="status"><span class="button-spinner"></span>' + progress + '</div>' : '') + (error ? '<p class="checkout-error" role="alert">' + escapeHtml(error) + '</p>' : '') + controls + '<p class="notice demo-stock-note">Each confirmed test unit reduces test stock by one.</p></div></div><div class="demo-bottom"><button class="secondary" data-action="' + (protectedCredit ? 'demo-staff' : 'new') + '" ' + (busy ? 'disabled' : '') + '>' + (protectedCredit ? 'Staff assistance' : completed ? 'Finish session' : 'Start a new session') + '</button><p class="notice">' + (protectedCredit ? 'Your saved order and recorded credit are preserved. No refund has been issued.' : 'Saved orders and confirmed delivery records remain in the database.') + '</p></div></section>';
   }
   return { attach, clear, restore, refresh, action, markup, guardReset,
     get protectsCredit() { return hasCredit() || !!pendingCoin; },

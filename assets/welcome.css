@@ -10,7 +10,7 @@ body.welcome-screen {
 
 .welcome-screen .app { min-height: calc(100dvh - 6px); max-width: none; padding: 0; }
 .welcome-screen .app-header { position: absolute; z-index: 2; top: 18px; right: clamp(20px, 3vw, 44px); left: clamp(20px, 3vw, 44px); min-height: 44px; border: 0; }
-.welcome-screen .demo, .welcome-screen footer { display: none; }
+.welcome-screen footer { display: none; }
 .welcome-screen #home { min-height: 44px; padding: 0; gap: 6px; background: none; border: 0; border-radius: 0; box-shadow: none; color: #ff0617; font-size: 18px; font-style: italic; font-weight: 700; letter-spacing: -.3px; }
 .welcome-screen #home .icon { width: 19px; height: 19px; color: #930008; }
 .welcome-screen #main { display: flex; align-items: center; justify-content: center; padding: 84px clamp(20px, 3vw, 40px) 32px; }
