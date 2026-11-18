@@ -1,4 +1,5 @@
 # MediVend
+<<<<<<< HEAD
 
 A touchscreen clinic catalog with **database-backed checkout and separate server-controlled simulation/hardware modes**, using PHP, PDO, and `medivend_db`. The MediVend design, product photos, fonts and continuous welcome animation are preserved at **1024 × 600**.
 
@@ -187,3 +188,5 @@ FROM demo_coin_events ORDER BY id DESC;
 - `MEDIVEND_MODE=device_simulation`: the real hardware flow against the simulated device, demo inventory only, with a **Device simulator** badge.
 
 A saved order is not proof of real payment or delivery. Confirmed simulated delivery changes **demo database stock** only. No real coins, money, motors, sensors, or dispensing hardware are connected.
+=======
+>>>>>>> origin/main
