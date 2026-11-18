@@ -1,3 +1,5 @@
 *.env
 config/*.local.php
 node_modules/
+hardware/.local/
+__pycache__/

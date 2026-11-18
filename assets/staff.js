@@ -79,9 +79,15 @@
     $('#stock-panel').hidden = !next.authenticated;
     $('#staff-logout').hidden = !next.authenticated;
     $('#staff-identity').hidden = !next.authenticated;
-    $('#staff-identity').textContent = next.username || '';
+    $('#staff-identity').textContent = next.authenticated ? (next.display_name || next.username) + (next.role === 'admin' ? ' · Admin' : '') : '';
     $('#login-submit').disabled = !next.configured;
-    if (!next.configured) message('Staff access has not been configured. Ask your administrator to set up a staff account.', true);
+    if (!next.configured) message('No staff accounts exist yet. Ask your administrator to run scripts/create-user.php.', true);
+    const notices = { signed_in_elsewhere: 'You were signed out because this account signed in on another device.',
+      account_disabled: 'This account was deactivated or changed. Sign in again or ask your administrator.',
+      expired: 'Your session expired. Sign in again.', bootstrap_ended: 'The setup account is no longer active. Sign in with your user account.' };
+    if (next.notice && notices[next.notice]) message(notices[next.notice], true);
+    else if (next.authenticated && next.bootstrap) message('You are using the one-time setup account. Create an administrator under Users; this account then stops working.', true);
+    window.dispatchEvent(new CustomEvent('staff:session', { detail: next }));
   }
 
   function date(value) {
@@ -237,6 +243,8 @@
     submitPending();
   });
   $('#retry-restock').addEventListener('click', submitPending);
+
+  window.MedivendStaff = { request, message, get session() { return session; }, showSession, recoverSession, get busy() { return busy; }, setBusy };
 
   (async () => {
     try { showSession(await request('staff-session')); if (session.configured) message(); if (session.authenticated) await loadStock(); }

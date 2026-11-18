@@ -11,6 +11,7 @@ try {
     $order = medivendReadOrder($database, medivendCheckoutReference($key));
     if (!$order) throw new MedivendCheckoutError(404, 'order_not_found', 'Please contact clinic staff. Saved status could not be found.');
     $response = medivendDemoView($order, $key); $response['exact_payment_message'] = 'Exact payment only. No change.';
+    $response['resolution'] = medivendReadResolution($database, $order['id']);
     $database->commit();
     echo json_encode($response, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 } catch (Throwable $error) {

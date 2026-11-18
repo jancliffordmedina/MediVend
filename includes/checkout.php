@@ -93,12 +93,15 @@ function medivendReadOrder(PDO $database, string $reference): ?array
     ];
 }
 
-function medivendSaveOrder(PDO $database, array $items, string $key, bool $isDemo = true): array
+function medivendSaveOrder(PDO $database, array $items, string $key, bool $isDemo = true, ?bool $hardwareFlow = null): array
 {
+    // Hardware flow (lease, commissioned price) is independent of the inventory
+    // class: device simulation uses the hardware flow with demo inventory.
+    $hardwareFlow = $hardwareFlow ?? !$isDemo;
     $reference = medivendCheckoutReference($key);
     $database->beginTransaction();
     try {
-        if (!$isDemo) {
+        if ($hardwareFlow) {
             $machine = $database->query('SELECT active_transaction_id FROM hardware_machine_state WHERE id = 1 FOR UPDATE')->fetch();
             if (!$machine) throw new RuntimeException('Hardware migration required.');
             if ($machine['active_transaction_id'] !== null) {
@@ -164,7 +167,7 @@ function medivendSaveOrder(PDO $database, array $items, string $key, bool $isDem
             if ($unitPrice === false || $unitPrice > intdiv(PHP_INT_MAX, $item['quantity'])) {
                 throw new MedivendCheckoutError(422, 'total_too_large', 'This order exceeds the platform integer limit. Please contact clinic staff.');
             }
-            if (!$isDemo && ((int) $product['is_demo'] !== 0 || $unitPrice !== 1000)) {
+            if ($hardwareFlow && ((bool) (int) $product['is_demo'] !== $isDemo || $unitPrice !== 1000)) {
                 throw new MedivendCheckoutError(409, 'inventory_not_commissioned', 'Machine unavailable. Please contact clinic staff.');
             }
             $lineTotal = $unitPrice * $item['quantity'];
@@ -187,7 +190,7 @@ function medivendSaveOrder(PDO $database, array $items, string $key, bool $isDem
         $updateTotal->bindValue(':total', $total, PDO::PARAM_INT);
         $updateTotal->bindValue(':id', $orderId, PDO::PARAM_STR);
         $updateTotal->execute();
-        if (!$isDemo) {
+        if ($hardwareFlow) {
             $lease = $database->prepare('UPDATE hardware_machine_state SET active_transaction_id = ? WHERE id = 1');
             $lease->execute([$orderId]);
         }

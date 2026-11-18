@@ -160,10 +160,10 @@ function savedOrderFromResponse(payload, expectedItems) {
   if (!order || typeof order.reference !== 'string' || !/^MV-[A-F0-9]{32}$/.test(order.reference)
     || !Number.isSafeInteger(order.total_centavos) || order.total_centavos < 0 || order.total_centavos > 4294967295
     || !Number.isSafeInteger(order.amount_paid_centavos) || order.amount_paid_centavos < 0 || order.amount_paid_centavos > 4294967295
-    || (order.amount_paid_centavos > order.total_centavos && (order.order_status !== 'needs_review' || order.dispensing_status !== 'needs_review'))
-    || !['pending', 'partial', 'paid', 'cancelled'].includes(order.payment_status)
-    || !['not_started', 'in_progress', 'partial', 'dispensed', 'needs_review'].includes(order.dispensing_status)
-    || !['pending', 'processing', 'completed', 'needs_review', 'cancelled'].includes(order.order_status) || typeof order.is_demo !== 'boolean'
+    || (order.amount_paid_centavos > order.total_centavos && !payload.resolution && (order.order_status !== 'needs_review' || order.dispensing_status !== 'needs_review'))
+    || !['pending', 'partial', 'paid', 'cancelled', 'refunded'].includes(order.payment_status)
+    || !['not_started', 'in_progress', 'partial', 'dispensed', 'needs_review', 'failed'].includes(order.dispensing_status)
+    || !['pending', 'processing', 'completed', 'needs_review', 'cancelled', 'failed'].includes(order.order_status) || typeof order.is_demo !== 'boolean'
     || (machineRuntime.mode === 'simulation' && order.is_demo !== true)
     || typeof payload.state_token !== 'string' || !/^[a-f0-9]{64}$/.test(payload.state_token)
     || !Array.isArray(order.items)) throw new Error('invalid_saved_order');
@@ -185,7 +185,17 @@ function savedOrderFromResponse(payload, expectedItems) {
   if (itemTotal !== order.total_centavos) throw new Error('invalid_saved_total');
   return { reference: order.reference, total: order.total_centavos, paid: order.amount_paid_centavos,
     paymentStatus: order.payment_status, dispensingStatus: order.dispensing_status, orderStatus: order.order_status,
-    isDemo: order.is_demo, token: payload.state_token, items: snapshots };
+    isDemo: order.is_demo, token: payload.state_token, items: snapshots,
+    // Set only when clinic staff recorded what they physically did.
+    resolution: payload.resolution && ['refunded', 'handed_over', 'closed'].includes(payload.resolution.action) ? payload.resolution : null };
+}
+
+function resolutionMarkup(order) {
+  const r = order.resolution;
+  const text = r.action === 'refunded' ? 'Clinic staff returned ' + money(r.refunded_centavos) + ' by hand.'
+    : r.action === 'handed_over' ? 'Clinic staff handed over the remaining medicine' + (r.refunded_centavos ? ' and returned ' + money(r.refunded_centavos) + ' excess' : '') + '.'
+    : 'Clinic staff closed this order. No money or medicine was handed over.';
+  return '<div class="demo-complete"><strong>' + escapeHtml(text) + '</strong><p>Recorded by ' + escapeHtml(r.staff_user) + '. Tap Finish session for the next customer.</p></div>';
 }
 
 function syncCheckoutControls() {
@@ -451,7 +461,7 @@ main.addEventListener('click', event => {
   const action = button.dataset.action;
   const product = products.find(item => item.id === button.dataset.id);
 
-  if (action.startsWith('hardware-') && machineRuntime.mode === 'hardware') { HardwareFlow.action(button); return; }
+  if (action.startsWith('hardware-') && machineRuntime.mode !== 'simulation') { HardwareFlow.action(button); return; }
   if (action.startsWith('demo-') && machineRuntime.mode === 'simulation') { DemoFlow.action(button); return; }
   if (!machineRuntime.loaded || !machineRuntime.available) return;
 
@@ -549,21 +559,28 @@ async function loadMachine() {
   try {
     const response = await fetch('api/machine.php', { cache: 'no-store', signal: controller.signal });
     const value = await response.json();
-    if (!response.ok || !['simulation', 'hardware'].includes(value.mode) || typeof value.available !== 'boolean') throw new Error('invalid_machine');
+    if (!response.ok || !['simulation', 'device_simulation', 'hardware'].includes(value.mode) || typeof value.available !== 'boolean') throw new Error('invalid_machine');
     if (appBooted && value.mode !== machineRuntime.mode) { location.reload(); return; }
     machineRuntime = { ...value, loaded: true };
   } catch { machineRuntime = { ...machineRuntime, loaded: true, available: false }; }
   finally { clearTimeout(timeout); }
   const simulation = machineRuntime.mode === 'simulation';
+  const deviceSimulation = machineRuntime.mode === 'device_simulation';
   document.body.classList.toggle('hardware-mode', !simulation);
-  document.querySelector('.demo').hidden = !simulation;
-  document.querySelector('#mode-footer').textContent = simulation ? 'No real payment or dispensing' : 'Exact payment only. No change.';
+  // Device simulation runs the real hardware flow against a simulated device:
+  // it must never look like a commissioned machine.
+  document.body.classList.toggle('device-sim', deviceSimulation);
+  const badge = document.querySelector('.demo');
+  badge.hidden = !simulation && !deviceSimulation;
+  badge.lastChild.textContent = deviceSimulation ? 'Device simulator' : 'Test mode';
+  document.querySelector('#mode-footer').textContent = simulation ? 'No real payment or dispensing'
+    : deviceSimulation ? 'Device simulator: no real coins, motors or sensors' : 'Exact payment only. No change.';
   document.querySelector('#staff-description').textContent = 'Your order and recorded credit are preserved. Keep this reference for staff assistance. No refund has been issued.';
   if (!appBooted) {
     appBooted = true;
     let pendingMode = null;
     try { pendingMode = JSON.parse(sessionStorage.getItem(checkoutStorageKey))?.mode; } catch {}
-    if (simulation || pendingMode === 'hardware') restoreCheckoutAttempt();
+    if (simulation || pendingMode === machineRuntime.mode) restoreCheckoutAttempt();
     const resume = !checkoutAttempt && currentFlow().restore();
     if (resume) currentFlow().refresh();
     else if (!checkoutAttempt && machineRuntime.available) loadCatalog();

@@ -29,11 +29,11 @@ function hwParallel(string $function, array $arguments): array
     return $results;
 }
 $database = medivendDatabase();
-$tables = ['products','transactions','transaction_items','demo_coin_events','hardware_machine_state','hardware_commands','hardware_delivery_events'];
+$tables = ['products','transactions','transaction_items','demo_coin_events','hardware_machine_state','hardware_commands','hardware_delivery_events','hardware_unassigned_coins'];
 $snapshot = static function () use ($database, $tables): array { $rows = []; foreach ($tables as $table) $rows[$table] = $database->query('SELECT * FROM ' . $table . ' ORDER BY 1')->fetchAll(); return $rows; };
 $before = $snapshot();
 hwAssert($before['hardware_machine_state'][0]['active_transaction_id'] === null, 'Run on an idle demo test database.');
-$owned = []; $productId = null; $failed = false; $server = null; $tag = 'TEST-HW-' . bin2hex(random_bytes(6));
+$owned = []; $parkedIds = []; $productId = null; $failed = false; $server = null; $tag = 'TEST-HW-' . bin2hex(random_bytes(6));
 putenv('MEDIVEND_MODE=hardware');
 try {
     hwAssert(!medivendMachineStatus()['available'], 'An unconfigured adapter must fail closed.');
@@ -121,6 +121,31 @@ try {
     hwAssert(!medivendClaimHardwareCommand($database,$command['id'],30) && medivendReadOrder($database,$restartRef)['order_status'] === 'needs_review', 'Uncertain process restart cannot redispatch a motor.');
     echo "PASS: concurrent motor/sensor deduplication and conservative restart recovery.\n";
 
+    // Device coins carry no order reference: bind to the active lease or park.
+    $database->exec('UPDATE hardware_machine_state SET active_transaction_id = NULL WHERE id = 1');
+    $stray = ['type'=>'accepted_coin','event_id'=>bin2hex(random_bytes(32)),'coin_centavos'=>500,'observed_at'=>time()]; $parkedIds[] = $stray['event_id'];
+    $a = new TestHardwareAdapter(); $a->events = [$stray, $stray];
+    hwAssert(medivendWorkerTick($database,$a,$config) === false && $a->acknowledged === [$stray['event_id'],$stray['event_id']], 'A coin with no active order is retained and acknowledged without crashing the worker.');
+    $count = $database->prepare("SELECT COUNT(*) FROM hardware_unassigned_coins WHERE event_id = ? AND reason = 'no_active_order' AND coin_centavos = 500"); $count->execute([$stray['event_id']]);
+    hwAssert((int) $count->fetchColumn() === 1, 'Unassigned coin stored once in full.');
+    hwAssert(medivendHardwareBlockingIssues($database) > 0 && $database->query('SELECT health FROM hardware_machine_state WHERE id=1')->fetchColumn() === 'unavailable', 'Unassigned credit blocks the machine for staff.');
+    try { medivendRecordHardwareCoin($database, array_replace($stray, ['coin_centavos'=>1000])); throw new LogicException('Changed denomination was accepted.'); }
+    catch (RuntimeException $error) { hwAssert(strpos($error->getMessage(), 'conflict') !== false, 'Changed denomination under the same ID conflicts.'); }
+    $settle = $database->prepare("UPDATE hardware_unassigned_coins SET resolved_at = CURRENT_TIMESTAMP, resolved_by = 'test' WHERE event_id = ?");
+    $settle->execute([$stray['event_id']]);
+    [, $boundRef] = $make(1);
+    $early = ['type'=>'accepted_coin','event_id'=>bin2hex(random_bytes(32)),'coin_centavos'=>500,'observed_at'=>time() - 600]; $parkedIds[] = $early['event_id'];
+    hwAssert(medivendRecordHardwareCoin($database,$early)['reason'] === 'before_order' && medivendReadOrder($database,$boundRef)['amount_paid_centavos'] === 0, 'A coin observed before the order existed is not credited to it.');
+    $settle->execute([$early['event_id']]);
+    $paid = ['type'=>'accepted_coin','event_id'=>bin2hex(random_bytes(32)),'coin_centavos'=>1000,'observed_at'=>time()];
+    $a = new TestHardwareAdapter(); $a->events = [$paid]; medivendWorkerTick($database,$a,$config);
+    hwAssert(medivendReadOrder($database,$boundRef)['payment_status'] === 'paid' && count($a->commands) === 1, 'A reference-less device coin pays the active order and allows dispatch.');
+    $database->exec('UPDATE hardware_machine_state SET active_transaction_id = NULL WHERE id = 1');
+    $replay = medivendRecordHardwareCoin($database,$paid);
+    hwAssert($replay['result'] === 'credited' && $replay['replayed'] && medivendReadOrder($database,$boundRef)['amount_paid_centavos'] === 1000, 'A lost-acknowledgement replay after the lease closed returns to the original order once.');
+    $retire = $database->prepare("UPDATE transactions SET order_status='failed', dispensing_status='failed' WHERE reference = ?"); $retire->execute([$boundRef]);
+    echo "PASS: reference-less device coins bind to the active lease, park unassigned/early coins without crashing, block for staff, and replay once.\n";
+
     // Isolated HTTP server: real local PHP/MySQL, hardware mode, no adapter.
     $port = random_int(21000,29000); $log = tempnam(sys_get_temp_dir(),'medivend-hw-http-');
     $server = proc_open([PHP_BINARY,'-S','127.0.0.1:' . $port,'-t',realpath(__DIR__ . '/..')], [0=>['pipe','r'],1=>['file',$log,'a'],2=>['file',$log,'a']], $pipes);
@@ -151,6 +176,7 @@ finally {
     if ($database->inTransaction()) $database->rollBack();
     $database->beginTransaction();
     $database->exec('UPDATE hardware_machine_state SET active_transaction_id = NULL WHERE id = 1');
+    foreach ($parkedIds as $id) { $query=$database->prepare('DELETE FROM hardware_unassigned_coins WHERE event_id=?'); $query->execute([$id]); }
     foreach ($owned as $reference) {
         foreach (["DELETE e FROM hardware_delivery_events e JOIN hardware_commands c ON c.id=e.command_id JOIN transactions t ON t.id=c.transaction_id WHERE t.reference=?",
             'DELETE c FROM hardware_commands c JOIN transactions t ON t.id=c.transaction_id WHERE t.reference=?',

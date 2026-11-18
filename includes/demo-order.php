@@ -5,6 +5,7 @@ require_once __DIR__ . '/checkout.php';
 require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/coin-events.php';
 require_once __DIR__ . '/machine.php';
+require_once __DIR__ . '/reviews.php';
 
 function medivendDemoKey(): string
 {
@@ -192,8 +193,9 @@ function medivendDemoEndpoint(string $kind): void
             if ($coinEvent && $coinEvent['transaction_id'] !== $order['id']) throw new MedivendCheckoutError(409, 'coin_event_conflict', 'That event belongs to another order. Please contact clinic staff.');
             if ($coinEvent) $coinEvent['replayed'] = true;
         }
-        $database->commit();
         $response = medivendDemoView($order, $key);
+        $response['resolution'] = medivendReadResolution($database, $order['id']);
+        $database->commit();
         if ($kind === 'payment' || isset($_SERVER['HTTP_X_DEMO_EVENT_ID'])) $response['coin_event'] = $coinEvent;
         if ($kind === 'payment' && $coinEvent['outcome'] === 'rejected') {
             http_response_code(409);

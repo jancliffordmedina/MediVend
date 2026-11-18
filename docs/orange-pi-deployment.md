@@ -123,6 +123,16 @@ sudo -u medivend php /srv/medivend/scripts/hardware-worker.php --once
 
 With the current config, `--once` exits **2** with **Machine unavailable**. This is expected. Do not enable a pretend-ready adapter to bypass it. No live hardware worker is enabled by these preparation steps. Once the details below are supplied, implement/verify the private adapter, configure its actual timeout and device permissions, and bench-test it before `sudo systemctl enable --now medivend-worker`. The service has separate identity, runtime/state directories and conservative restart handling. A sent-but-unconfirmed command after restart goes to review; it is never resent automatically. Inspect `journalctl -u medivend-worker` and Apache's MediVend error log during commissioning.
 
+### Python hardware service and the HTTP adapter (added 18 November 2026)
+
+The device side is now implemented as the localhost Python service in [hardware/](../hardware/README.md) (`deploy/medivend-hwd.service`). The worker reaches it through `includes/hardware-http-adapter.php`, selected by the private adapter file `deploy/hardware-adapter.example.php` → `/etc/medivend/hardware-adapter.php`. The service's config and token live in `/etc/medivend-hw` (group `medivend-hw`), separate from the database credentials. Commission in three steps:
+
+1. `MEDIVEND_MODE=device_simulation` with `backend = "sim"`. This is the real worker and adapter against a simulated device, using demo inventory only, with a **Device simulator** badge on the kiosk.
+2. Bench-check each device with `bench-pca`, `bench-coin`, `bench-beam` and `servo-test`, following the [checklist](../hardware/README.md#bench-commissioning-checklist-hardware-team).
+3. `MEDIVEND_MODE=hardware` with `backend = "real"`. This only becomes ready when every `commissioned` flag has been set from physical results. The adapter refuses a simulated service in this mode, and refuses readiness when `MEDIVEND_DELIVERY_TIMEOUT_SECONDS` doesn't exceed the device's `max_cycle_ms` by 2 s.
+
+Apply migration `006_unassigned_coins.sql`. Coins accepted with no open order are now kept in full in `hardware_unassigned_coins` and block the machine for staff. Before this change they crash-looped the worker.
+
 ## Exact hardware details still needed
 
 | Area | Required information before implementation/commissioning |

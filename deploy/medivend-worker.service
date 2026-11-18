@@ -1,6 +1,7 @@
 [Unit]
 Description=MediVend verified hardware boundary
-After=mariadb.service
+Wants=medivend-hwd.service time-sync.target
+After=mariadb.service medivend-hwd.service time-sync.target
 Requires=mariadb.service
 
 [Service]

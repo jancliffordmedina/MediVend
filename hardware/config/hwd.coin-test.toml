@@ -1,0 +1,69 @@
+# COIN TEST backend: the REAL coin acceptor on Orange Pi GPIO, while the servos and
+# the IR beam stay SIMULATED. Use it with MEDIVEND_MODE=device_simulation (demo
+# inventory, "Device simulator" badge) to pay kiosk orders with physical coins
+# before the rest of the hardware is wired. Health reports simulated: true, so
+# real hardware mode refuses it.
+# On the Pi: copy to /etc/medivend-hw/hwd.toml (root:medivend-hw, 0640) and set the coin line.
+
+[service]
+backend = "coin_test"
+host = "127.0.0.1"
+port = 8765
+token_file = "/etc/medivend-hw/hwd.token"
+journal_path = "/var/lib/medivend-hwd/journal-coin-test.sqlite3"
+
+[coin]
+# Pulses per coin as PROGRAMMED in the acceptor -> centavos. VERIFY with bench-coin.
+pulses = { "1" = 100, "5" = 500, "10" = 1000, "20" = 2000 }
+glitch_ms = 5
+pulse_min_ms = 15             # VERIFY with bench-coin
+pulse_max_ms = 130            # VERIFY with bench-coin
+train_gap_ms = 300            # VERIFY with bench-coin
+
+[coin.input]
+chip = "/dev/gpiochip0"
+# line = ?                    # REQUIRED: GPIO line of the coin signal (after the optocoupler). See `gpioinfo`.
+active_low = true             # VERIFY with bench-coin: ACTIVE must appear once per pulse
+bias = "as-is"
+
+[beam]                        # simulated in this mode
+debounce_ms = 2
+max_block_ms = 1500
+watch_after_return_ms = 1500
+settle_ms = 300
+
+[servo]                       # simulated in this mode
+min_pulse_us = 1000
+max_pulse_us = 2000
+
+[safety]
+require_output_enable = true
+
+[sim]
+beam_delay_ms = 150
+beam_block_ms = 40
+default_beam = "pass"
+
+[[compartments]]
+number = 1
+channel = 0
+rest_angle = 0
+dispense_angle = 90
+move_ms = 400
+hold_ms = 200
+
+[[compartments]]
+number = 2
+channel = 1
+rest_angle = 0
+dispense_angle = 90
+move_ms = 400
+hold_ms = 200
+
+[[compartments]]
+number = 3
+channel = 2
+rest_angle = 0
+dispense_angle = 90
+move_ms = 400
+hold_ms = 200

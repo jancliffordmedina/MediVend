@@ -1,0 +1,97 @@
+# MediVend hardware service: REAL backend template for the Orange Pi One.
+# Copy to /etc/medivend-hw/hwd.toml (root:medivend-hw, 0640) and complete it on the
+# bench. Every value marked VERIFY must come from measurement or the device's
+# documentation. Nothing here has been tested on physical hardware.
+#
+# Readiness: the service reports ready only when coin, beam and every
+# compartment are commissioned = true, the PCA9685 answers, GPIO lines are
+# readable, /OE is wired (or require_output_enable = false), no E-stop/lockout
+# is active and no coin anomaly is open.
+
+[service]
+backend = "real"
+host = "127.0.0.1"
+port = 8765
+token_file = "/etc/medivend-hw/hwd.token"
+journal_path = "/var/lib/medivend-hwd/journal.sqlite3"
+
+[coin]
+commissioned = false          # set true only after the bench checklist passes
+# Pulses per coin as PROGRAMMED in the acceptor -> centavos. VERIFY.
+pulses = { "1" = 100, "5" = 500, "10" = 1000, "20" = 2000 }
+glitch_ms = 5                 # shorter edges are ignored as noise
+pulse_min_ms = 15             # VERIFY with bench-coin (acceptor pulse-width setting)
+pulse_max_ms = 130
+train_gap_ms = 300            # silence that ends one coin's pulse train. VERIFY
+
+[coin.input]
+chip = "/dev/gpiochip0"
+# line = ?                    # REQUIRED. H3 offset = bank_index*32 + pin (PA=0, PC=2, PD=3, PG=6...).
+                              # e.g. PA6 -> 6. Check the Orange Pi One pinout and `gpioinfo`.
+active_low = true             # optocoupler / open-collector output pulls LOW during a pulse. VERIFY
+bias = "as-is"                # use the external pull-up of the isolation circuit
+
+[beam]
+commissioned = false
+debounce_ms = 2
+max_block_ms = 1500           # blocked longer than this = jam
+watch_after_return_ms = 1500  # how long to wait for the item after the servo returns. VERIFY
+settle_ms = 300               # after one passage, wait this long for a second (double drop)
+
+[beam.input]
+chip = "/dev/gpiochip0"
+# line = ?                    # REQUIRED. VERIFY wiring.
+active_low = true             # receiver output LOW when the beam is BROKEN (typical open-collector). VERIFY
+bias = "as-is"
+
+[servo]
+i2c_bus = 0                   # Armbian overlay i2c0 -> /dev/i2c-0. VERIFY with `i2cdetect -l`
+address = 0x40                # VERIFY with `i2cdetect -y 0`
+frequency_hz = 50             # SG90: 50 Hz
+oscillator_hz = 25000000      # adjust after measuring the real period with a scope/logic analyser
+min_pulse_us = 1000           # conservative start; widen only after calibration (typ. 500-2400)
+max_pulse_us = 2000
+
+[safety]
+require_output_enable = true
+
+[safety.output_enable]        # PCA9685 /OE pin. "active" means outputs ENABLED.
+chip = "/dev/gpiochip0"
+# line = ?                    # REQUIRED when require_output_enable = true. VERIFY
+active_low = true             # /OE is active-low on the PCA9685
+
+# Optional E-stop status contact (the E-stop itself must cut servo V+ in hardware).
+# [safety.estop]
+# chip = "/dev/gpiochip0"
+# line = ?
+# active_low = false          # VERIFY: use a normally-closed contact so a broken wire reads as engaged
+# bias = "as-is"
+
+# One entry per physical compartment. Angles are PLACEHOLDERS (0 = no motion)
+# until calibrated with `servo-test` under maintenance lockout.
+[[compartments]]
+number = 1
+channel = 0
+rest_angle = 0
+dispense_angle = 0
+move_ms = 600
+hold_ms = 300
+commissioned = false
+
+[[compartments]]
+number = 2
+channel = 1
+rest_angle = 0
+dispense_angle = 0
+move_ms = 600
+hold_ms = 300
+commissioned = false
+
+[[compartments]]
+number = 3
+channel = 2
+rest_angle = 0
+dispense_angle = 0
+move_ms = 600
+hold_ms = 300
+commissioned = false

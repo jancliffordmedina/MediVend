@@ -1,0 +1,38 @@
+[Unit]
+Description=MediVend hardware service (coin acceptor, IR beam, PCA9685 servos)
+# Coin/delivery timestamps use the wall clock: wait for time sync (no RTC on the Orange Pi One).
+Wants=time-sync.target
+After=local-fs.target time-sync.target
+
+[Service]
+Type=simple
+User=medivend-hwd
+Group=medivend-hwd
+# medivend-hw: read /etc/medivend-hw/hwd.toml and hwd.token. gpio/i2c: device access via deploy/99-medivend-hardware.rules
+SupplementaryGroups=medivend-hw gpio i2c
+Environment=PYTHONPATH=/srv/medivend/hardware PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+# State directory as working directory, so nothing is imported from the current directory.
+WorkingDirectory=/var/lib/medivend-hwd
+ExecStart=/usr/bin/python3 -m medivend_hwd --config /etc/medivend-hw/hwd.toml serve
+Restart=on-failure
+RestartSec=2
+# SIGTERM -> stop: outputs are switched off before exit.
+KillSignal=SIGTERM
+TimeoutStopSec=10
+StateDirectory=medivend-hwd
+StateDirectoryMode=0750
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+# Only the GPIO character devices and I2C buses. VERIFY the class names exist in /proc/devices on the target.
+DevicePolicy=closed
+DeviceAllow=char-gpiochip rw
+DeviceAllow=char-i2c rw
+
+[Install]
+WantedBy=multi-user.target

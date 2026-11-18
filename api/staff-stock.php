@@ -10,7 +10,7 @@ try {
     }
     medivendStaffStart();
     $actor = medivendRequireStaff();
-    $mode = medivendMachineConfig()['mode'];
+    $mode = medivendStockMode();
     $database = medivendDatabase();
     $result = [];
     if ($method === 'POST') {

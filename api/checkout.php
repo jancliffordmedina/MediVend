@@ -15,8 +15,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
 }
 
 try {
-    $hardware = medivendMachineConfig()['mode'] === 'hardware';
+    $hardware = medivendHardwareFlow();
     if ($hardware) medivendRequireHardwareReady();
+    $demoInventory = !$hardware || medivendHardwareInventoryDemo();
     $contentType = strtolower(trim(explode(';', $_SERVER['CONTENT_TYPE'] ?? '')[0]));
     if ($contentType !== 'application/json') {
         throw new MedivendCheckoutError(415, 'json_required', 'Send the order as JSON.');
@@ -36,7 +37,7 @@ try {
     }
     $items = medivendCheckoutItems($payload);
     require_once __DIR__ . '/../includes/database.php';
-    $result = medivendSaveOrder(medivendDatabase(), $items, $key, !$hardware);
+    $result = medivendSaveOrder(medivendDatabase(), $items, $key, $demoInventory, $hardware);
     $result += medivendDemoView($result['order'], $key);
     http_response_code($result['replayed'] ? 200 : 201);
     echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);

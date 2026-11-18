@@ -131,3 +131,62 @@ dialog .button-primary { width: 100%; margin-top: 22px; }
   dialog label { margin-top: 12px; }
   dialog .button-primary { margin-top: 14px; }
 }
+
+/* Tabs, review queue and user accounts */
+.staff-tabs { display: flex; gap: 6px; padding: 0 5vw; background: #fff; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.staff-tabs .tab { min-height: 48px; padding: 0 16px; border: 0; border-bottom: 3px solid transparent; background: none; color: var(--muted); font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.staff-tabs .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.tab-count { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: #b3261e; color: #fff; font-size: 11px; display: inline-flex; align-items: center; justify-content: center; }
+.review-list { display: grid; gap: 12px; margin-bottom: 30px; }
+.review-card { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 18px 20px; background: #fff; border: 1px solid var(--line); border-left: 4px solid #c9832b; border-radius: 12px; }
+.review-main h3 { font-size: 15px; letter-spacing: 0; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; margin: 4px 0; word-break: break-all; }
+.review-main p { font-size: 12px; color: var(--muted); }
+.review-main small { color: var(--muted); }
+.review-why { font-size: 11px; font-weight: 700; color: #8a5a12; text-transform: uppercase; letter-spacing: .5px; }
+.review-main dl { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 10px 0 0; font-size: 12px; }
+.review-main dt { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .5px; }
+.review-main dd { margin: 0; font-weight: 600; }
+.review-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.resolve-summary { margin: 10px 0 16px; padding: 12px 14px; background: #f3f6f2; border-radius: 10px; font-size: 12px; display: grid; gap: 6px; }
+.resolve-options { border: 0; padding: 0; margin: 0 0 14px; display: grid; gap: 8px; }
+.resolve-options legend { font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+.resolve-options label { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; min-height: 44px; }
+.resolve-options label:has(input:checked) { border-color: var(--ink); background: #f1f7f2; }
+.resolve-options label:has(input:disabled) { opacity: .5; cursor: not-allowed; }
+.resolve-options input { margin-top: 3px; width: 18px; height: 18px; }
+.resolve-options strong { display: block; font-size: 13px; }
+.resolve-options small { display: block; font-size: 11px; color: var(--muted); }
+.user-form { margin: 24px 0; padding: 22px; background: #fff; border: 1px solid var(--line); border-radius: 14px; display: grid; gap: 12px; }
+.user-form h2 { font-size: 17px; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
+.form-grid label { display: grid; gap: 6px; font-size: 12px; font-weight: 600; }
+.user-form input, .user-form select, #edit-user-form input, #edit-user-form select { min-height: 44px; padding: 10px 12px; border: 1px solid #c8d7cb; border-radius: 10px; font: inherit; font-size: 13px; background: #fff; }
+#edit-user-form { display: grid; gap: 8px; }
+#edit-user-form label { font-size: 12px; font-weight: 600; }
+.check-row { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.check-row input { width: 18px; height: 18px; }
+.user-form .button { justify-self: start; }
+.users-table tr.inactive td { color: var(--muted); }
+.users-table td:last-child { text-align: right; }
+@media (max-width: 760px) {
+  .review-card { flex-direction: column; align-items: stretch; }
+  .form-grid { grid-template-columns: 1fr; }
+  .users-table th:nth-child(4), .users-table td:nth-child(4) { display: none; }
+  .users-table th:last-child, .users-table td:last-child { display: table-cell; }
+}
+#resolve-title { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 16px; letter-spacing: 0; word-break: break-all; }
+#resolve-dialog { width: min(480px, calc(100vw - 32px)); }
+@media (max-height: 700px) {
+  #resolve-dialog { padding: 20px 22px; }
+  .resolve-summary { margin: 8px 0 10px; padding: 9px 12px; }
+  .resolve-options { gap: 6px; margin-bottom: 10px; }
+  .resolve-options label { padding: 8px 12px; }
+}
+
+/* Device simulator tab */
+.sim-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 28px; }
+.sim-coin { min-height: 72px; font-size: 20px; }
+.sim-beam .button { min-height: 64px; flex-direction: column; gap: 2px; }
+.sim-beam small { font-size: 11px; font-weight: 500; color: var(--muted); }
+.sim-log { margin: 0; padding: 14px 18px 14px 34px; background: #fff; border: 1px solid var(--line); border-radius: 12px; font-size: 12px; max-height: 220px; overflow: auto; display: grid; gap: 6px; }
+@media (max-width: 760px) { .sim-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

@@ -180,5 +180,10 @@ FROM demo_coin_events ORDER BY id DESC;
 - `assets/style.css`, `assets/welcome.css`, `assets/fonts.css`: shared interface and animations.
 - `tests/products-api.test.php`, `tests/checkout-api.test.php`, `tests/demo-flow-api.test.php`, `tests/coin-payment-api.test.php`: XAMPP regression checks.
 - `tests/purchase-flow-browser.test.mjs`, `tests/purchase-flow-fixtures.php`: touch-browser audit and CLI-only isolated database fixtures.
+- `hardware/`: Python device service (`medivend-hwd`) for the coin acceptor, IR beam and PCA9685 servos, with a clearly labelled simulator backend. See [hardware/README.md](hardware/README.md).
+- `includes/hardware-http-adapter.php`: worker adapter for that service. `tests/device-simulation.test.php`: end-to-end worker → adapter → Python simulator test.
+- `database/migrations/006_unassigned_coins.sql`: accepted coins with no eligible order are retained for staff instead of crashing the worker.
+- [Staff accounts and stopped orders](docs/staff-accounts.md): one sign-in page for admins and staff (`staff.php`, **Staff login** on the kiosk), one active sign-in per user, `scripts/create-user.php`, and the **Needs attention** screen that resolves stopped orders so the kiosk can finish the session. Migration `007_users_and_resolutions.sql`. Tests: `tests/staff-accounts.test.php`.
+- `MEDIVEND_MODE=device_simulation`: the real hardware flow against the simulated device, demo inventory only, with a **Device simulator** badge.
 
 A saved order is not proof of real payment or delivery. Confirmed simulated delivery changes **demo database stock** only. No real coins, money, motors, sensors, or dispensing hardware are connected.

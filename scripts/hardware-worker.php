@@ -11,9 +11,9 @@ function medivendWorkerTick(PDO $database, MedivendHardwareAdapter $adapter, arr
     if (!$ready) { medivendHardwareInterrupt($database); $adapter->stop(); return false; }
     foreach ($adapter->verifiedEvents() as $event) {
         if (($event['type'] ?? '') === 'accepted_coin') {
-            $order = medivendReadOrder($database, $event['reference']);
-            if (!$order || $order['is_demo']) throw new RuntimeException('Preserve unassigned coin event for staff.');
-            medivendRecordAcceptedCoin($database, $event['reference'], $event['event_id'], $event['coin_centavos']);
+            // Bound to the active order under the machine lock; unbindable coins are
+            // retained as unassigned and block the machine (never crash-loop here).
+            medivendRecordHardwareCoin($database, $event);
         } elseif (($event['type'] ?? '') === 'delivery') {
             medivendHardwareDelivery($database, $event['event_id'], $event['command_id'], $event['outcome']);
         } else throw new RuntimeException('Unknown verified adapter event.');
@@ -25,7 +25,7 @@ function medivendWorkerTick(PDO $database, MedivendHardwareAdapter $adapter, arr
     foreach ($expired as $id) medivendHardwareDelivery($database, hash('sha256', 'deadline:' . $id), $id, 'timeout');
     // A late accepted coin for a just-closed session also blocks the machine.
     // Continue recording accepted value, but require staff before new motors.
-    if ((int) $database->query("SELECT COUNT(*) FROM transactions WHERE is_demo = 0 AND (order_status = 'needs_review' OR dispensing_status = 'needs_review')")->fetchColumn() > 0) {
+    if (medivendHardwareBlockingIssues($database) > 0) {
         $database->exec("UPDATE hardware_machine_state SET health = 'unavailable' WHERE id = 1");
         medivendHardwareInterrupt($database); $adapter->stop(); return false;
     }
@@ -48,7 +48,7 @@ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') !== __FILE__) return;
 $adapter = new MedivendUnconfiguredAdapter();
 try {
     $config = medivendMachineConfig();
-    if ($config['mode'] !== 'hardware') throw new RuntimeException('Worker requires server hardware mode.');
+    if (!medivendHardwareFlow($config)) throw new RuntimeException('Worker requires server hardware or device_simulation mode.');
     $lock = fopen(getenv('MEDIVEND_WORKER_LOCK') ?: sys_get_temp_dir() . '/medivend-hardware-worker.lock', 'c');
     if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) throw new RuntimeException('Another hardware worker owns the lock.');
     $database = medivendDatabase();

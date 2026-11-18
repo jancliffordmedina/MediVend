@@ -4,7 +4,7 @@ require_once __DIR__ . '/../includes/demo-order.php';
 header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store');
 $database = null;
 try {
-    if (medivendMachineConfig()['mode'] !== 'hardware') throw new MedivendCheckoutError(403, 'hardware_only', 'Use the current session.');
+    if (!medivendHardwareFlow()) throw new MedivendCheckoutError(403, 'hardware_only', 'Use the current session.');
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') { header('Allow: POST'); throw new MedivendCheckoutError(405, 'method_not_allowed', 'Use POST to close the session.'); }
     medivendDemoBody([]);
     $key = $_SERVER['HTTP_X_ORDER_KEY'] ?? '';
@@ -14,8 +14,11 @@ try {
     $lock = $database->prepare('SELECT id FROM transactions WHERE reference = ? FOR UPDATE'); $lock->execute([medivendCheckoutReference($key)]);
     if (!$lock->fetch()) throw new MedivendCheckoutError(404, 'order_not_found', 'Please contact clinic staff.');
     $order = medivendReadOrder($database, medivendCheckoutReference($key));
-    if ($order['is_demo']) throw new MedivendCheckoutError(409, 'session_protected', 'Please contact clinic staff. The saved session is preserved.');
-    if ($order['order_status'] === 'completed') {
+    if ($order['is_demo'] !== medivendHardwareInventoryDemo()) throw new MedivendCheckoutError(409, 'session_protected', 'Please contact clinic staff. The saved session is preserved.');
+    $resolution = medivendReadResolution($database, $order['id']);
+    if ($resolution !== null && in_array($order['order_status'], ['completed', 'failed'], true)) {
+        // Staff resolved this order; only the machine lease is released below.
+    } elseif ($order['order_status'] === 'completed') {
         $confirmed = $order['payment_status'] === 'paid' && $order['amount_paid_centavos'] === $order['total_centavos'] && $order['dispensing_status'] === 'dispensed';
         foreach ($order['items'] as $item) if ($item['dispensed_quantity'] !== $item['quantity']) $confirmed = false;
         if (!$confirmed) throw new MedivendCheckoutError(409, 'session_protected', 'Please contact clinic staff. Delivery is unresolved.');

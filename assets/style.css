@@ -223,6 +223,12 @@ footer { display: flex; justify-content: space-between; gap: 16px; padding: 22px
 #staff-reference { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
 #staff-close { width: 100%; }
 [hidden], .hardware-mode .demo { display: none !important; }
+.staff-login { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; margin-left: auto; border: 1px solid #18251833; border-radius: 999px; color: var(--brand-dark); font-size: 12px; font-weight: 600; text-decoration: none; }
+.staff-login .icon { width: 14px; height: 14px; }
+.staff-login + .text-button { margin-left: 16px; }
+.staff-dialog-login { flex: 1; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; color: inherit; }
+.hardware-mode.device-sim .demo:not([hidden]) { display: inline-flex !important; border-color: #d9b45a; background: #fff6dc; color: #6b4b00; }
+.hardware-mode.device-sim .demo i { background: #d99a00; }
 .demo-coins { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .demo-coin { min-height: 58px; padding: 9px 7px; font-size: 12px; background: #eaf5e3; }
 .demo-coins button:disabled, .demo-controls button:disabled { opacity: .4; box-shadow: none; }
