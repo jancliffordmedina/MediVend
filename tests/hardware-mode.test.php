@@ -7,7 +7,7 @@ final class TestHardwareAdapter implements MedivendHardwareAdapter
 {
     public array $events = [], $commands = [], $acknowledged = [];
     public int $stops = 0;
-    public function health(): array { return array_fill_keys(['connected','coin_events_verified','sensor_events_verified','command_deduplication','safe_stop','persistent_event_ids'], true) + ['denominations_centavos' => [100,500,1000,2000]]; }
+    public function health(): array { return array_fill_keys(['connected','coin_events_verified','sensor_events_verified','command_deduplication','safe_stop','persistent_event_ids'], true) + ['denominations_centavos' => [500,1000,2000]]; }
     public function verifiedEvents(): iterable { $events = $this->events; $this->events = []; return $events; }
     public function acknowledge(string $id): void { $this->acknowledged[] = $id; }
     public function dispatch(array $command): void { $this->commands[] = $command; }

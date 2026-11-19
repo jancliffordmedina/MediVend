@@ -34,7 +34,7 @@ try {
     $slash = static fn(string $p): string => str_replace('\\', '/', $p);
     file_put_contents($toml, implode("\n", [
         '[service]', 'backend = "sim"', 'port = ' . $port, 'token_file = "' . $slash($token) . '"', 'journal_path = "' . $slash($private) . '/journal.sqlite3"',
-        '[coin]', 'pulses = { "1" = 100, "5" = 500, "10" = 1000, "20" = 2000 }', 'glitch_ms = 2', 'pulse_min_ms = 5', 'pulse_max_ms = 30', 'train_gap_ms = 60',
+        '[coin]', 'pulses = { "5" = 500, "10" = 1000, "20" = 2000 }', 'glitch_ms = 2', 'pulse_min_ms = 5', 'pulse_max_ms = 30', 'train_gap_ms = 60',
         '[beam]', 'debounce_ms = 2', 'max_block_ms = 250', 'watch_after_return_ms = 250', 'settle_ms = 60',
         '[servo]', 'min_pulse_us = 1000', 'max_pulse_us = 2000',
         '[sim]', 'pulse_ms = 8', 'pulse_gap_ms = 8', 'beam_delay_ms = 30', 'beam_block_ms = 15',

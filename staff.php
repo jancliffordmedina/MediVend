@@ -16,7 +16,7 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-sr
   <title>Staff · MediVend</title>
   <link rel="icon" type="image/png" href="assets/MediVendWebLogo.png">
   <link rel="stylesheet" href="assets/fonts.css">
-  <link rel="stylesheet" href="assets/staff.css?v=20261119-1">
+  <link rel="stylesheet" href="assets/staff.css?v=20261119-2">
   <script src="assets/staff.js?v=20261118-1" defer></script>
   <script src="assets/staff-admin.js?v=20261119-1" defer></script>
 </head>
@@ -83,7 +83,6 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-sr
       <div class="mode-note"><strong>How to test a purchase</strong>1. On the kiosk, save an order. 2. Optionally choose how the next dispense ends. 3. Tap coins here until the total is paid. The kiosk updates by itself within a few seconds.</div>
       <div class="section-heading"><h2>Insert a coin</h2><span>One tap = one coin</span></div>
       <div class="sim-grid">
-        <button class="button button-primary sim-coin" data-sim-coin="100">₱1</button>
         <button class="button button-primary sim-coin" data-sim-coin="500">₱5</button>
         <button class="button button-primary sim-coin" data-sim-coin="1000">₱10</button>
         <button class="button button-primary sim-coin" data-sim-coin="2000">₱20</button>

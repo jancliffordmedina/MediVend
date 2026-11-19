@@ -6,7 +6,7 @@
 
 | Method | Contract |
 | --- | --- |
-| `health()` | Fresh verified device observation. Report `connected`, `coin_events_verified`, `sensor_events_verified`, `command_deduplication`, `safe_stop`, `persistent_event_ids` as true only after their physical guarantees have been established. `denominations_centavos` must be exactly `[100,500,1000,2000]`. A hard-coded configuration flag is not a connection check. |
+| `health()` | Fresh verified device observation. Report `connected`, `coin_events_verified`, `sensor_events_verified`, `command_deduplication`, `safe_stop`, `persistent_event_ids` as true only after their physical guarantees have been established. `denominations_centavos` must be exactly `[500,1000,2000]` (₱5, ₱10, ₱20; ₱1 is not accepted). A hard-coded configuration flag is not a connection check. |
 | `verifiedEvents()` | Yield only authenticated/validated observations from the verified device integration. Preserve their stable event IDs and durable journal across boots; never derive payment from a UI animation. |
 | `acknowledge(eventId)` | Remove/acknowledge an observation only after the backend commits it. Keep and reconcile unacknowledged, malformed, unassigned or storage-failed accepted-money events; never silently discard them. |
 | `dispatch(command)` | Dispatch the stable command `id` for its snapshot `compartment_number`/`unit_number`. The device boundary must persistently deduplicate that ID. No automatic retries of a sent/uncertain command. Actual electrical/protocol mapping is still unspecified. |

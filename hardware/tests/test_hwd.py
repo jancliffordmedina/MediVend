@@ -29,7 +29,7 @@ from medivend_hwd.signals import MS, BeamWindow, CoinDecoder  # noqa: E402
 
 BASE = {
     "service": {"backend": "sim", "token_file": "unused", "journal_path": ":memory:"},
-    "coin": {"pulses": {"1": 100, "5": 500, "10": 1000, "20": 2000}, "glitch_ms": 2, "pulse_min_ms": 5,
+    "coin": {"pulses": {"5": 500, "10": 1000, "20": 2000}, "glitch_ms": 2, "pulse_min_ms": 5,
              "pulse_max_ms": 30, "train_gap_ms": 60},
     "beam": {"debounce_ms": 2, "max_block_ms": 250, "watch_after_return_ms": 250, "settle_ms": 60},
     "servo": {"min_pulse_us": 1000, "max_pulse_us": 2000},
@@ -59,7 +59,7 @@ def wait_for(predicate, timeout=5.0):
 class ConfigTests(unittest.TestCase):
     def test_denominations_must_be_exact(self):
         with self.assertRaises(cfg.ConfigError):
-            make_config(coin={"pulses": {"1": 100, "5": 500, "10": 1000}})
+            make_config(coin={"pulses": {"1": 100, "5": 500, "10": 1000, "20": 2000}})  # ₱1 is no longer accepted
 
     def test_real_backend_requires_explicit_lines(self):
         with self.assertRaisesRegex(cfg.ConfigError, "coin.input.line is required"):
@@ -84,7 +84,7 @@ class ConfigTests(unittest.TestCase):
 
 class CoinDecoderTests(unittest.TestCase):
     def decoder(self):
-        return CoinDecoder({1: 100, 5: 500, 10: 1000, 20: 2000}, 2, 5, 30, 60)
+        return CoinDecoder({5: 500, 10: 1000, 20: 2000}, 2, 5, 30, 60)
 
     def feed(self, decoder, widths_ms, gap_ms=10, start=0):
         t = start
@@ -96,7 +96,7 @@ class CoinDecoderTests(unittest.TestCase):
         return t
 
     def test_counts_and_maps(self):
-        for count, value in ((1, 100), (5, 500), (10, 1000), (20, 2000)):
+        for count, value in ((5, 500), (10, 1000), (20, 2000)):
             d = self.decoder()
             end = self.feed(d, [10] * count)
             self.assertIsNone(d.poll(end))  # train not finished yet
@@ -108,6 +108,11 @@ class CoinDecoderTests(unittest.TestCase):
         end = self.feed(d, [10, 0.5, 10, 10, 10, 10])
         self.assertEqual(d.poll(end + 80 * MS).centavos, 500)
         self.assertEqual(d.ignored_glitches, 1)
+
+    def test_one_pulse_peso_coin_is_now_an_anomaly(self):
+        d = self.decoder()
+        end = self.feed(d, [10])
+        self.assertIn("unknown pulse count 1", d.poll(end + 80 * MS).anomaly)
 
     def test_unknown_count_is_anomaly(self):
         d = self.decoder()
@@ -207,7 +212,7 @@ class ServiceTests(unittest.TestCase):
         health = self.service.health()
         self.assertTrue(health["ready"])
         self.assertTrue(health["simulated"])
-        self.assertEqual(health["denominations_centavos"], [100, 500, 1000, 2000])
+        self.assertEqual(health["denominations_centavos"], [500, 1000, 2000])
 
     def test_simulated_coins_flow_through_decoder_and_journal(self):
         self.backend.inject_coin(2000)

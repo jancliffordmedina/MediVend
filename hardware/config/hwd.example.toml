@@ -18,7 +18,7 @@ journal_path = "/var/lib/medivend-hwd/journal.sqlite3"
 [coin]
 commissioned = false          # set true only after the bench checklist passes
 # Pulses per coin as PROGRAMMED in the acceptor -> centavos. VERIFY.
-pulses = { "1" = 100, "5" = 500, "10" = 1000, "20" = 2000 }
+pulses = { "5" = 500, "10" = 1000, "20" = 2000 }
 glitch_ms = 5                 # shorter edges are ignored as noise
 pulse_min_ms = 15             # VERIFY with bench-coin (acceptor pulse-width setting)
 pulse_max_ms = 130

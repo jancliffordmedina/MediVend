@@ -1,6 +1,6 @@
 /* Simulation only: balances change only after a PHP-confirmed ledger event. */
 const DemoFlow = (() => {
-  const denominations = [100, 500, 1000, 2000];
+  const denominations = [500, 1000, 2000];
   const storageKey = 'medivend.current-demo-order.v1';
   const creditStorageKey = 'medivend.protected-demo-credit.v1';
   let key = null, busy = false, blocked = false, uncertainDelivery = false, error = '', progress = '';
@@ -168,12 +168,13 @@ const DemoFlow = (() => {
     const delivered = order.items.reduce((sum, item) => sum + item.delivered, 0);
     const count = order.items.reduce((sum, item) => sum + item.qty, 0);
     const disabled = busy || blocked || !!pendingCoin || !order.isDemo;
+    if (completed && !pendingCoin && !busy) return thankYouMarkup(order, 'new', 'Test mode: no real payment or medicine.');
     const heading = staffResolved ? 'Resolved by clinic staff.' : review ? 'Please contact clinic staff' : completed ? 'Delivery test complete.' : cancelled ? 'Unpaid session closed.' : running ? 'Confirm delivery' : paid ? 'Payment complete.' : 'Payment';
     const usable = denominations.filter(coin => coin <= remaining);
     const guidance = usable.length ? 'For ' + money(remaining) + ' remaining, use ' + usable.map(coin => money(coin).replace('.00', '')).join(' or ') + ' coins.'
       : 'No supported coin fits. Please contact clinic staff.';
     const coinButtons = denominations.map(coin => '<button class="secondary demo-coin" data-action="demo-coin" data-coin="' + coin + '" ' + (disabled || coin > remaining ? 'disabled' : '') + ' title="' + escapeHtml(coin > remaining ? guidance : 'Record one test coin') + '">Insert ' + money(coin).replace('.00', '') + '</button>').join('');
-    const coinPanel = '<p class="demo-help"><strong>Exact payment only. This machine cannot return change.</strong></p><p class="demo-denominations">Coins: ₱1 · ₱5 · ₱10 · ₱20</p><div class="demo-coins">' + coinButtons + '</div><p class="notice demo-guidance">' + escapeHtml(guidance) + '</p>';
+    const coinPanel = '<p class="demo-help"><strong>Exact payment only. This machine cannot return change.</strong></p><p class="demo-denominations">Coins: ₱5 · ₱10 · ₱20</p><div class="demo-coins">' + coinButtons + '</div><p class="notice demo-guidance">' + escapeHtml(guidance) + '</p>';
     let controls = '';
     if (staffResolved) controls = resolutionMarkup(order);
     else if (pendingCoin) controls = coinPanel + '<p class="demo-help">An unconfirmed ' + money(pendingCoin.coin_centavos) + ' coin event is kept for recovery. New coin controls are paused.</p>' + (busy ? '' : '<button class="primary" data-action="demo-retry-coin">Retry same coin event ' + icon('arrow') + '</button>');

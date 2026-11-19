@@ -190,6 +190,43 @@ function savedOrderFromResponse(payload, expectedItems) {
     resolution: payload.resolution && ['refunded', 'handed_over', 'closed'].includes(payload.resolution.action) ? payload.resolution : null };
 }
 
+// Completed purchase: a calm thank-you screen that returns home by itself.
+// Only completed orders auto-finish; unresolved or credited sessions never do.
+function thankYouMarkup(order, finishAction, testNote) {
+  const units = order.items.reduce((sum, item) => sum + item.qty, 0);
+  return '<section class="thank-you" role="status" aria-live="polite"><div class="thank-you-card">'
+    + '<div class="thank-you-check" aria-hidden="true"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24"/><path d="m15 27 7 7 15-16"/></svg></div>'
+    + '<p class="eyebrow">Order complete</p><h1 class="thank-you-title">Thank you for your purchase!</h1>'
+    + '<p class="thank-you-sub">Please take your medicine from the pickup tray below.</p>'
+    + '<div class="thank-you-receipt"><ul>' + order.items.map(item => '<li><span>' + escapeHtml(item.name) + ' <small>× ' + item.qty + '</small></span><strong>' + money(item.price * item.qty) + '</strong></li>').join('') + '</ul>'
+    + '<div class="thank-you-total"><span>Paid · ' + units + ' item' + (units === 1 ? '' : 's') + '</span><strong>' + money(order.paid) + '</strong></div>'
+    + '<p class="thank-you-ref">Ref. ' + escapeHtml(order.reference) + '</p></div>'
+    + '<p class="thank-you-care">Read the label and follow the dosage instructions. Ask clinic staff if you need help. Get well soon!</p>'
+    + (testNote ? '<p class="thank-you-test">' + escapeHtml(testNote) + '</p>' : '')
+    + '<button class="primary thank-you-done" data-action="' + finishAction + '" data-auto-finish="' + escapeHtml(order.reference) + '">Done ' + icon('arrow') + '</button>'
+    + '<p class="thank-you-timer">Returning to the home screen in <span id="finish-countdown">20</span>s</p>'
+    + '</div></section>';
+}
+
+let autoFinish = { ref: null, deadline: 0, timer: null };
+function setupAutoFinish() {
+  const button = document.querySelector('[data-auto-finish]');
+  if (!button) { clearInterval(autoFinish.timer); autoFinish = { ref: null, deadline: 0, timer: null }; return; }
+  if (autoFinish.ref !== button.dataset.autoFinish) {
+    clearInterval(autoFinish.timer);
+    autoFinish = { ref: button.dataset.autoFinish, deadline: Date.now() + 20000, timer: setInterval(tickAutoFinish, 250) };
+  }
+  tickAutoFinish();
+}
+function tickAutoFinish() {
+  const button = document.querySelector('[data-auto-finish]');
+  if (!button) { setupAutoFinish(); return; }
+  const left = Math.max(0, Math.ceil((autoFinish.deadline - Date.now()) / 1000));
+  const label = document.querySelector('#finish-countdown');
+  if (label) label.textContent = String(left);
+  if (left === 0 && autoFinish.timer && !button.disabled) { clearInterval(autoFinish.timer); autoFinish.timer = null; button.click(); }
+}
+
 function resolutionMarkup(order) {
   const r = order.resolution;
   const text = r.action === 'refunded' ? 'Clinic staff returned ' + money(r.refunded_centavos) + ' by hand.'
@@ -422,7 +459,7 @@ function checkout() {
   return `<section class="checkout"><button class="back" data-action="shop" ${locked ? 'disabled' : ''}>${icon('back')} Back to collection</button>
     <div class="page-head"><div><p class="eyebrow">Almost there</p><h1>One last look.</h1><p class="sub">Review your items before saving your order.</p></div>${steps(2)}</div>
     <div class="checkout-grid"><div class="panel order-panel"><div class="panel-heading"><h2>Your selection</h2><span class="count">${quantity()} item${quantity() === 1 ? '' : 's'}</span></div>${products.filter(product => cart.has(product.id)).map(product => summaryLine(product, cart.get(product.id))).join('')}<div class="total"><span>Estimated total</span><strong>${money(total())}</strong></div><p class="notice">Final prices are confirmed when your order is saved.</p></div>
-    <div class="panel checkout-panel ${checkoutError ? 'has-error' : ''}" aria-busy="${checkoutBusy}"><span class="panel-icon">${icon('shield')}</span><h2>Confirm your order.</h2><p class="sub">${machineRuntime.mode === 'simulation' ? 'Test coins and delivery only. No real payment or dispensing.' : 'Accepted coins: ₱1 · ₱5 · ₱10 · ₱20. Exact payment only. No change.'}</p>
+    <div class="panel checkout-panel ${checkoutError ? 'has-error' : ''}" aria-busy="${checkoutBusy}"><span class="panel-icon">${icon('shield')}</span><h2>Confirm your order.</h2><p class="sub">${machineRuntime.mode === 'simulation' ? 'Test coins and delivery only. No real payment or dispensing.' : 'Accepted coins: ₱5 · ₱10 · ₱20. Exact payment only. No change.'}</p>
     ${checkoutAttempt ? '' : `<label class="check-label"><input id="ack" type="checkbox" ${checkoutAcknowledged ? 'checked' : ''}><span>${machineRuntime.mode === 'simulation' ? 'I understand that delivery confirmations change test stock only.' : 'I have reviewed my items and understand that no change can be returned.'}</span></label>`}
     ${checkoutError ? `<p class="checkout-error" role="alert">${escapeHtml(checkoutError)}</p>` : ''}
     <button id="complete" class="primary" data-action="complete" ${checkoutBusy || (!checkoutAttempt && (!checkoutAcknowledged || catalogStatus !== 'ready')) ? 'disabled' : ''}>${checkoutBusy ? '<span class="button-spinner" aria-hidden="true"></span>Saving order…' : checkoutAttempt ? `Retry save ${icon('arrow')}` : `Save order ${icon('arrow')}`}</button>
@@ -439,6 +476,7 @@ function render(entering = false) {
   document.body.classList.toggle('welcome-screen', screen === 'welcome' || unavailable);
   main.innerHTML = !machineRuntime.loaded ? '<div class="catalog-state" role="status"><h1>Checking machine…</h1></div>' : unavailable ? welcome() : screen === 'welcome' ? welcome() : screen === 'shop' ? shop() : screen === 'checkout' ? checkout() : paymentPending();
   syncCheckoutControls();
+  setupAutoFinish();
   if (entering && screen !== 'welcome') {
     main.firstElementChild.classList.add('screen-enter');
   }

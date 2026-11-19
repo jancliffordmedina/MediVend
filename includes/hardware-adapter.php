@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/coin-events.php';
 
 /** Domain boundary only. No GPIO pins, serial packets or pulse mapping assumed.
  * Implementations must authenticate/validate observations, persist event IDs
@@ -43,5 +44,5 @@ function medivendHardwareHealthVerified(array $health): bool
     foreach (['connected', 'coin_events_verified', 'sensor_events_verified', 'command_deduplication', 'safe_stop', 'persistent_event_ids'] as $capability) {
         if (($health[$capability] ?? false) !== true) return false;
     }
-    return ($health['denominations_centavos'] ?? null) === [100, 500, 1000, 2000];
+    return ($health['denominations_centavos'] ?? null) === MEDIVEND_COIN_DENOMINATIONS;
 }

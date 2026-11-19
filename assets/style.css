@@ -229,7 +229,7 @@ footer { display: flex; justify-content: space-between; gap: 16px; padding: 22px
 .staff-dialog-login { flex: 1; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; color: inherit; }
 .hardware-mode.device-sim .demo:not([hidden]) { display: inline-flex !important; border-color: #d9b45a; background: #fff6dc; color: #6b4b00; }
 .hardware-mode.device-sim .demo i { background: #d99a00; }
-.demo-coins { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.demo-coins { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .demo-coin { min-height: 58px; padding: 9px 7px; font-size: 12px; background: #eaf5e3; }
 .demo-coins button:disabled, .demo-controls button:disabled { opacity: .4; box-shadow: none; }
 .delivery-buttons { display: grid; gap: 8px; max-height: 150px; overflow-y: auto; padding-bottom: 4px; }
@@ -470,4 +470,58 @@ dialog p { font-size: 13px; line-height: 1.7; color: #86958b; margin: 12px 0 25p
   .screen-enter, .success-icon { animation: brand-fade .18s both; }
   .cart-updated .count, .cart-updated .total strong { animation-duration: .18s; }
   @media (hover: hover) { .product:hover, .product:hover .product-art img { transform: none; } }
+}
+
+/* Thank-you screen (completed purchase) */
+.thank-you { flex: 1; display: flex; align-items: center; justify-content: center; padding: 18px 0 8px; }
+.thank-you-card { position: relative; width: min(560px, 100%); padding: 30px 34px 22px; text-align: center; background: linear-gradient(180deg, #ffffff 0%, #f6fbf4 100%); border: 1px solid var(--ink); border-radius: 28px; box-shadow: 0 24px 60px #17231912, 0 4px 0 #1723191a; animation: thank-rise .5s cubic-bezier(.2,.8,.2,1) both; }
+.thank-you-check { width: 72px; height: 72px; margin: 0 auto 12px; border-radius: 50%; background: #e8f5e3; display: grid; place-items: center; box-shadow: 0 0 0 10px #4caf5014; }
+.thank-you-check svg { width: 52px; height: 52px; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.thank-you-check circle { stroke: var(--green); stroke-width: 3; stroke-dasharray: 151; stroke-dashoffset: 151; animation: thank-draw .6s .15s ease-out forwards; }
+.thank-you-check path { stroke: var(--brand-dark); stroke-width: 4; stroke-dasharray: 40; stroke-dashoffset: 40; animation: thank-draw .35s .6s ease-out forwards; }
+.thank-you .eyebrow { margin-bottom: 4px; text-align: center; }
+.thank-you-title { margin: 0; font-family: Poppins, sans-serif; font-size: clamp(24px, 3.4vw, 32px); line-height: 1.15; color: var(--brand-dark); letter-spacing: -.5px; }
+.thank-you-sub { margin: 8px 0 16px; color: #5d7064; font-size: 14px; }
+.thank-you-receipt { margin: 0 auto 14px; padding: 12px 16px; text-align: left; background: #fff; border: 1px dashed #c7d8c2; border-radius: 16px; }
+.thank-you-receipt ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; max-height: 96px; overflow-y: auto; }
+.thank-you-receipt li { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.thank-you-receipt small { color: #7d8982; }
+.thank-you-total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 12px; color: #5d7064; }
+.thank-you-total strong { font-family: Poppins, sans-serif; font-size: 20px; color: var(--brand-dark); }
+.thank-you-ref { margin: 6px 0 0; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 10px; color: #8a978f; word-break: break-all; }
+.thank-you-care { margin: 0 0 10px; font-size: 12px; color: #4c6153; line-height: 1.5; }
+.thank-you-test { display: table; margin: 0 auto 12px; padding: 5px 12px; border-radius: 999px; background: #fff6dc; color: #6b4b00; font-size: 11px; font-weight: 600; }
+.thank-you-done { min-width: 200px; min-height: 52px; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.thank-you-timer { margin: 10px 0 0; font-size: 11px; color: #7d8982; }
+@keyframes thank-draw { to { stroke-dashoffset: 0; } }
+@keyframes thank-rise { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (max-height: 700px) {
+  .thank-you { padding: 8px 0 4px; }
+  .thank-you-card { padding: 18px 28px 14px; }
+  .thank-you-check { width: 56px; height: 56px; margin-bottom: 8px; box-shadow: 0 0 0 7px #4caf5014; }
+  .thank-you-check svg { width: 40px; height: 40px; }
+  .thank-you-sub { margin: 4px 0 10px; font-size: 13px; }
+  .thank-you-receipt { padding: 9px 14px; margin-bottom: 10px; }
+  .thank-you-receipt ul { max-height: 58px; }
+  .thank-you-care { margin-bottom: 8px; }
+  .thank-you-test { margin-bottom: 8px; }
+  .thank-you-done { min-height: 48px; }
+  .thank-you-timer { margin-top: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thank-you-card { animation: none; }
+  .thank-you-check circle, .thank-you-check path { animation: none; stroke-dashoffset: 0; }
+}
+
+/* Keep "Your cart" visible beside the medicines on the kiosk LED even when the
+   effective width shrinks (e.g. 125% display scaling gives ~819 CSS px). */
+@media (min-width: 651px) and (max-width: 900px) {
+  .shop-layout { grid-template-columns: minmax(0, 1fr) 240px; gap: 14px; }
+  .products { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .product { padding: 9px; }
+  .product-art { height: 120px; }
+  .cart { position: sticky; top: 10px; padding: 16px; }
+  .cart-thumb { width: 44px; }
+  .row-controls { padding-left: 50px; }
+  .empty p br { display: inline; }
 }

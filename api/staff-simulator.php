@@ -5,6 +5,7 @@ declare(strict_types=1);
  * every other mode, and by the adapter whenever the device is not the simulator. */
 require_once __DIR__ . '/../includes/staff.php';
 require_once __DIR__ . '/../includes/hardware-http-adapter.php';
+require_once __DIR__ . '/../includes/coin-events.php';
 medivendStaffHeaders();
 try {
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
@@ -20,7 +21,7 @@ try {
     $adapter = medivendLoadHardwareAdapter($config);
     if (!$adapter instanceof MedivendHttpHardwareAdapter) throw new MedivendCheckoutError(503, 'simulator_unavailable', 'No simulated hardware service is configured.');
     if (($payload->action ?? null) === 'coin' && medivendStaffKeys($payload, ['action', 'centavos'])
-        && is_int($payload->centavos) && in_array($payload->centavos, [100, 500, 1000, 2000], true)) {
+        && is_int($payload->centavos) && in_array($payload->centavos, MEDIVEND_COIN_DENOMINATIONS, true)) {
         $result = $adapter->simulate('coin', ['centavos' => $payload->centavos]);
         $text = 'Simulated ₱' . ($payload->centavos / 100) . ' coin inserted.';
     } elseif (($payload->action ?? null) === 'beam' && medivendStaffKeys($payload, ['action', 'scenario'])

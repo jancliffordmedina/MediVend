@@ -14,7 +14,7 @@ journal_path = "/var/lib/medivend-hwd/journal-coin-test.sqlite3"
 
 [coin]
 # Pulses per coin as PROGRAMMED in the acceptor -> centavos. VERIFY with bench-coin.
-pulses = { "1" = 100, "5" = 500, "10" = 1000, "20" = 2000 }
+pulses = { "5" = 500, "10" = 1000, "20" = 2000 }
 glitch_ms = 5
 pulse_min_ms = 15             # VERIFY with bench-coin
 pulse_max_ms = 130            # VERIFY with bench-coin

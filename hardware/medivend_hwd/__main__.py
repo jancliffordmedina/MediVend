@@ -6,7 +6,7 @@
   python -m medivend_hwd --config ... lockout on|off --note "..."
   python -m medivend_hwd --config ... clear-anomaly ID --note "..."
   python -m medivend_hwd --config ... servo-test COMPARTMENT ANGLE [--hold-ms 800]
-  python -m medivend_hwd --config ... sim-coin 1000 | sim-coin --pulses 3
+  python -m medivend_hwd --config ... sim-coin 10      (pesos: 1, 5, 10 or 20) | sim-coin --pulses 3
   python -m medivend_hwd --config ... sim-beam pass|none|jam|double|late
   python -m medivend_hwd --config ... sim-estop on|off
   Bench tools (stop the service first; they open the GPIO/I2C devices directly):
@@ -147,7 +147,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     servo.add_argument("angle", type=float)
     servo.add_argument("--hold-ms", type=int, default=800)
     coin = sub.add_parser("sim-coin")
-    coin.add_argument("centavos", type=int, nargs="?")
+    coin.add_argument("pesos", type=int, nargs="?", help="coin value in pesos: 1, 5, 10 or 20")
     coin.add_argument("--pulses", type=int)
     coin.add_argument("--pulse-ms", type=float)
     beam = sub.add_parser("sim-beam")
@@ -194,7 +194,16 @@ def main(argv: Optional[list[str]] = None) -> int:
         angle: Any = int(args.angle) if args.angle.is_integer() else args.angle
         method, path, body = "POST", "maintenance/servo", {"compartment": args.compartment, "angle": angle, "hold_ms": args.hold_ms}
     elif args.command == "sim-coin":
-        body = {"pulses": args.pulses} if args.pulses else {"centavos": args.centavos}
+        if args.pulses:
+            body = {"pulses": args.pulses}
+        else:
+            accepted = {value // 100: value for value in config.coin.pulses.values()}
+            if args.pesos not in accepted:
+                listed = ", ".join(f"PHP {p}" for p in sorted(accepted))
+                print(json.dumps({"ok": False, "error": {"code": "coin_not_accepted",
+                      "message": f"PHP {args.pesos} is not an accepted coin. Accepted coins: {listed}. No coin was inserted."}}, indent=2))
+                return 1
+            body = {"centavos": accepted[args.pesos]}
         if args.pulse_ms:
             body["pulse_ms"] = args.pulse_ms
         method, path = "POST", "sim/coin"

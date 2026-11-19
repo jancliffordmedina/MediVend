@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
-REQUIRED_DENOMINATIONS = [100, 500, 1000, 2000]
+REQUIRED_DENOMINATIONS = [500, 1000, 2000]  # ₱5, ₱10, ₱20 (₱1 not accepted)
 
 
 class ConfigError(ValueError):

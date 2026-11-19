@@ -55,7 +55,7 @@ try {
     for ($slot = 1; $slot <= 65535 && count($slots) < 3; $slot++) if (!isset($used[$slot])) $slots[] = $slot;
     demoAssert(count($slots) === 3, 'Three temporary fixture slots are needed.');
     $insert = $database->prepare('INSERT INTO products (sku, name, price_centavos, stock_quantity, compartment_number, is_active, is_demo) VALUES (?, ?, ?, ?, ?, 1, ?)');
-    foreach ([[500, 20, 1], [100, 20, 1], [500, 3, 0]] as $index => $data) {
+    foreach ([[500, 20, 1], [500, 20, 1], [500, 3, 0]] as $index => $data) {
         $insert->execute([$tag . '-' . $index, 'Simulation test ' . $index, $data[0], $data[1], $slots[$index], $data[2]]);
         $fixtureIds[] = (int) $database->lastInsertId();
     }
@@ -73,15 +73,16 @@ try {
     demoAssert(demoHttp('demo-order', bin2hex(random_bytes(32)))['status'] === 404, 'A different order key cannot access this order.');
     demoAssert(demoDelivery($key, $state, 'start')['status'] === 409, 'Unpaid orders cannot start delivery.');
     demoAssert(demoCoin($key, $state, 200)['status'] === 422, 'Unsupported coins must be rejected.');
-    $paid1 = demoCoin($key, $state, 100);
-    demoAssert($paid1['status'] === 200 && $paid1['body']['order']['amount_paid_centavos'] === 100 && $paid1['body']['order']['payment_status'] === 'partial', 'One peso must be partial.');
-    $duplicateCoin = demoCoin($key, $state, 100);
+    demoAssert(demoCoin($key, $state, 100)['status'] === 422, 'A ₱1 coin is no longer accepted.');
+    $paid1 = demoCoin($key, $state, 500);
+    demoAssert($paid1['status'] === 200 && $paid1['body']['order']['amount_paid_centavos'] === 500 && $paid1['body']['order']['payment_status'] === 'partial', 'Five pesos must be partial.');
+    $duplicateCoin = demoCoin($key, $state, 500);
     demoAssert($duplicateCoin['status'] === 200 && $duplicateCoin['body']['coin_event']['replayed'] === true
-        && $duplicateCoin['body']['order']['amount_paid_centavos'] === 100, 'Duplicate coin event must replay without counting twice.');
+        && $duplicateCoin['body']['order']['amount_paid_centavos'] === 500, 'Duplicate coin event must replay without counting twice.');
     $paid = demoCoin($key, $paid1['body'], 1000);
-    demoAssert($paid['body']['order']['amount_paid_centavos'] === 1100 && $paid['body']['order']['payment_status'] === 'paid', 'Exact integer total becomes paid.');
+    demoAssert($paid['body']['order']['amount_paid_centavos'] === 1500 && $paid['body']['order']['payment_status'] === 'paid', 'Exact integer total becomes paid.');
     demoAssert($paid['body']['order']['dispensing_status'] === 'not_started' && $stockOf($a) === 20, 'Coins never dispense or alter stock.');
-    demoAssert(demoCoin($key, $paid['body'], 100)['status'] === 409, 'Already paid order rejects more coins.');
+    demoAssert(demoCoin($key, $paid['body'], 500)['status'] === 409, 'Already paid order rejects more coins.');
 
     $started = demoDelivery($key, $paid['body'], 'start');
     demoAssert($started['body']['order']['dispensing_status'] === 'in_progress', 'Starting enters processing.');
@@ -105,7 +106,7 @@ try {
     demoAssert(demoDelivery($completeKey, $done, 'delivered', $a)['status'] === 409 && $stockOf($a) === 17, 'Cannot dispense beyond ordered quantity.');
 
     [$uncertainKey, $uncertainState] = $make([['product_id' => $b, 'quantity' => 1]]);
-    $p = demoCoin($uncertainKey, $uncertainState, 100)['body'];
+    $p = demoCoin($uncertainKey, $uncertainState, 500)['body'];
     $s = demoDelivery($uncertainKey, $p, 'start')['body'];
     $uncertain = demoDelivery($uncertainKey, $s, 'no_confirmation')['body'];
     demoAssert($uncertain['order']['order_status'] === 'needs_review' && $uncertain['order']['items'][0]['dispensed_quantity'] === 0 && $stockOf($b) === 20, 'Missing sensor confirmation records no delivery.');
@@ -115,15 +116,15 @@ try {
     demoAssert(demoHttp('demo-order', $noChangeKey)['body']['order']['amount_paid_centavos'] === 0, 'Rejected overpayment preserves balance.');
 
     [$shortKey, $shortState] = $make([['product_id' => $b, 'quantity' => 2]]);
-    $p = demoCoin($shortKey, $shortState, 100)['body'];
-    $p = demoCoin($shortKey, $p, 100)['body'];
+    $p = demoCoin($shortKey, $shortState, 500)['body'];
+    $p = demoCoin($shortKey, $p, 500)['body'];
     $setStock = $database->prepare('UPDATE products SET stock_quantity = ? WHERE id = ?');
     $setStock->execute([1, $b]);
     $short = demoDelivery($shortKey, $p, 'start')['body'];
     demoAssert($short['order']['order_status'] === 'needs_review' && $stockOf($b) === 1, 'Stock is rechecked before starting.');
 
     [$raceKey, $raceState] = $make([['product_id' => $b, 'quantity' => 1]]);
-    $p = demoCoin($raceKey, $raceState, 100)['body'];
+    $p = demoCoin($raceKey, $raceState, 500)['body'];
     $s = demoDelivery($raceKey, $p, 'start')['body'];
     $setStock->execute([0, $b]);
     $race = demoDelivery($raceKey, $s, 'delivered', $b)['body'];

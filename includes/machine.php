@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/checkout.php';
+require_once __DIR__ . '/coin-events.php';
 
 function medivendMachineConfig(): array
 {
@@ -32,7 +33,7 @@ function medivendStockMode(): string
 function medivendMachineStatus(): array
 {
     $status = ['mode' => 'hardware', 'available' => false, 'message' => 'Machine unavailable',
-        'accepted_denominations_centavos' => [100, 500, 1000, 2000], 'unit_price_centavos' => 1000,
+        'accepted_denominations_centavos' => MEDIVEND_COIN_DENOMINATIONS, 'unit_price_centavos' => 1000,
         'exact_payment_message' => 'Exact payment only. No change.', 'active_order' => false, 'simulated_device' => false];
     try {
         $config = medivendMachineConfig();

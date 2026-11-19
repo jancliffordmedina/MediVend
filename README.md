@@ -1,5 +1,4 @@
 # MediVend
-<<<<<<< HEAD
 
 A touchscreen clinic catalog with **database-backed checkout and separate server-controlled simulation/hardware modes**, using PHP, PDO, and `medivend_db`. The MediVend design, product photos, fonts and continuous welcome animation are preserved at **1024 × 600**.
 
@@ -16,7 +15,7 @@ Use the separate [staff stock room](docs/staff-stock.md) to sign in, add medicin
 3. Use the existing `medivend_db` database. On a fresh machine, import your original `medivend_db.sql` in [phpMyAdmin](http://localhost/phpmyadmin/), then apply the additive migration and current-price update below.
 4. Check `config/database.php`: host `localhost`, port `3306`, database `medivend_db`, username `root`, and an empty password. XAMPP's `pdo_mysql` extension must be enabled.
 5. Open **[http://localhost/MediVend/](http://localhost/MediVend/)**. Tap **Get Started**, choose medicines, open **Review order**, acknowledge the demo, and tap **Save order**.
-6. The **Payment** screen shows the saved reference, total due, amount inserted, remaining balance, and accepted denominations. The persistent **Test mode** badge identifies the simulation. Test with **Insert ₱1**, **Insert ₱5**, **Insert ₱10** or **Insert ₱20**. It displays **Exact payment only. This machine cannot return change.**
+6. The **Payment** screen shows the saved reference, total due, amount inserted, remaining balance, and accepted denominations. The persistent **Test mode** badge identifies the simulation. Test with **Insert ₱5**, **Insert ₱10** or **Insert ₱20** (₱1 is not accepted). It displays **Exact payment only. This machine cannot return change.**
 7. After **Payment complete.**, tap **Dispense**, then **Confirm 1 unit · [medicine]** for each test delivery, or choose **Jam** or **No confirmation** to test a fault. These controls change demo database records only; no real coins or dispensing hardware are connected.
 
 Use Apache rather than opening `index.html` directly or using a static-only server. No Composer packages, npm installation, build step, or internet connection is required.
@@ -80,7 +79,7 @@ Before leaving a saved **unpaid** order, the browser posts `{}` to `api/demo-ses
 
 The tab keeps its current-order capability in `sessionStorage`. `X-Demo-Order-Key` binds simulation requests to that exact saved order; a public reference alone is insufficient. Every simulation endpoint rejects non-demo orders. Stock consumption additionally requires demo, active products. Reloading the same tab retrieves its saved state through `GET api/demo-order.php`.
 
-`POST api/demo-payment.php` accepts only a unique `event_id` (64 lowercase hexadecimal characters) and integer `coin_centavos` (100, 500, 1000, or 2000), with the current `X-Demo-Order-Key` capability header. Any combination is accepted while it fits the remaining balance; payment stays `partial` until the saved total is reached, then becomes `paid`. New events after full payment are rejected. Payment alone never changes stock or dispensing.
+`POST api/demo-payment.php` accepts only a unique `event_id` (64 lowercase hexadecimal characters) and integer `coin_centavos` (500, 1000, or 2000), with the current `X-Demo-Order-Key` capability header. Any combination is accepted while it fits the remaining balance; payment stays `partial` until the saved total is reached, then becomes `paid`. New events after full payment are rejected. Payment alone never changes stock or dispensing.
 
 ```json
 {"event_id":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","coin_centavos":500}
@@ -141,8 +140,8 @@ For a manual browser check:
 2. Check that **Test mode** is visible, acknowledge the test and tap **Save order**, including a quick repeated tap. One saved reference and **₱30.00** should appear on **Payment**.
 3. In phpMyAdmin, inspect `transactions` and `transaction_items`. Confirm one order for that reference, matching item snapshots, `pending` / `not_started`, zero paid/dispensed amounts, and unchanged product stock.
 4. To test a connection failure, stop MySQL **after opening checkout review**, then save. The cart remains. Restart MySQL and tap **Retry save**; the original request key is reused.
-5. Tap **Insert ₱10** twice, **Insert ₱5** once and **Insert ₱1** five times. These are test buttons; do not insert real money. The balance becomes zero and **Payment complete.** appears. Confirm `amount_paid_centavos = 3000`, payment `paid`, dispensing still `not_started`, and eight accepted ledger rows. A new event after that is rejected; retrying an old event never adds credit.
-6. Before full payment, try Start over: staff assistance must appear and the order/inserted credit must remain. Reload, or close/reopen the tab in the same browser, to recover that order. For a ₱4 remainder, only **Insert ₱1** fits; overpayment explains the smaller test denomination.
+5. Tap **Insert ₱10** twice and **Insert ₱5** twice. These are test buttons; do not insert real money. The balance becomes zero and **Payment complete.** appears. Confirm `amount_paid_centavos = 3000`, payment `paid`, dispensing still `not_started`, and four accepted ledger rows. A new event after that is rejected; retrying an old event never adds credit.
+6. Before full payment, try Start over: staff assistance must appear and the order/inserted credit must remain. Reload, or close/reopen the tab in the same browser, to recover that order. For a ₱5 remainder, only **Insert ₱5** fits; overpayment explains the smaller test denomination.
 7. After full payment, tap **Dispense**. Use **Confirm 1 unit · [medicine]** to record one test delivery, or **Jam** or **No confirmation** to stop with a test fault. Staff review preserves credit and partial delivery; it does not complete or refund the order. A fully delivered simulation shows **Delivery test complete.** and can **Finish session**. Manual delivery tests consume **demo database stock**; use suitable test inventory.
 
 Useful read-only inspection queries in phpMyAdmin:
@@ -188,5 +187,3 @@ FROM demo_coin_events ORDER BY id DESC;
 - `MEDIVEND_MODE=device_simulation`: the real hardware flow against the simulated device, demo inventory only, with a **Device simulator** badge.
 
 A saved order is not proof of real payment or delivery. Confirmed simulated delivery changes **demo database stock** only. No real coins, money, motors, sensors, or dispensing hardware are connected.
-=======
->>>>>>> origin/main

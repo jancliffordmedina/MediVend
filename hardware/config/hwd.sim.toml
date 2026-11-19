@@ -13,7 +13,7 @@ token_file = ".local/hwd.token"
 journal_path = ".local/journal-sim.sqlite3"
 
 [coin]
-pulses = { "1" = 100, "5" = 500, "10" = 1000, "20" = 2000 }
+pulses = { "5" = 500, "10" = 1000, "20" = 2000 }
 glitch_ms = 5
 pulse_min_ms = 15
 pulse_max_ms = 130

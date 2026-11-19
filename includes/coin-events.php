@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
 
-const MEDIVEND_COIN_DENOMINATIONS = [100, 500, 1000, 2000];
+// Accepted coins: ₱5, ₱10, ₱20 (₱1 removed). Historical ₱1 ledger rows stay valid in the database.
+const MEDIVEND_COIN_DENOMINATIONS = [500, 1000, 2000];
 const MEDIVEND_EXACT_PAYMENT_MESSAGE = 'Exact payment only. This machine cannot return change.';
 
 function medivendReadCoinEvent(PDO $database, string $eventId): ?array
@@ -43,7 +44,7 @@ function medivendProcessCoinEvent(PDO $database, array $order, string $eventId, 
         return $existing + ['replayed' => true];
     }
     if (!in_array($coin, MEDIVEND_COIN_DENOMINATIONS, true)) {
-        throw new MedivendCheckoutError(422, 'invalid_coin', 'Only integer-centavo demo ₱1, ₱5, ₱10, and ₱20 events are supported.');
+        throw new MedivendCheckoutError(422, 'invalid_coin', 'Only integer-centavo demo ₱5, ₱10 and ₱20 coins are accepted.');
     }
     $before = $order['amount_paid_centavos'];
     $after = $before;

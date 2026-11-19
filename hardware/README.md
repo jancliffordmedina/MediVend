@@ -47,7 +47,7 @@ In a second terminal (same folder):
 
 ```powershell
 py -m medivend_hwd --config config/hwd.sim.toml health
-py -m medivend_hwd --config config/hwd.sim.toml sim-coin 1000        # ₱10
+py -m medivend_hwd --config config/hwd.sim.toml sim-coin 10          # ₱10 (pesos: 1, 5, 10 or 20)
 py -m medivend_hwd --config config/hwd.sim.toml sim-coin --pulses 3  # invalid train -> anomaly
 py -m medivend_hwd --config config/hwd.sim.toml anomalies
 py -m medivend_hwd --config config/hwd.sim.toml clear-anomaly 1 --note "simulated test"
@@ -83,7 +83,7 @@ Responses use `{"ok": true, "data": …}` or `{"ok": false, "error": {"code", "m
 
 | Method & path | Purpose | Notes |
 | --- | --- | --- |
-| `GET /v1/health` | Readiness and capability flags | `ready` requires connected, coin/sensor verified, dedup, persistent IDs, safe stop, and denominations exactly `[100,500,1000,2000]`. `details.max_cycle_ms` is the longest possible cycle. |
+| `GET /v1/health` | Readiness and capability flags | `ready` requires connected, coin/sensor verified, dedup, persistent IDs, safe stop, and denominations exactly `[500,1000,2000]` (₱5, ₱10, ₱20). `details.max_cycle_ms` is the longest possible cycle. |
 | `GET /v1/events?limit=50` | Unacknowledged observations, oldest first | `accepted_coin {event_id, coin_centavos, observed_at}`, `delivery {event_id, command_id, outcome, observed_at}` |
 | `POST /v1/events/{id}/ack` | Acknowledge after the PHP commit | Idempotent; 404 for an unknown ID |
 | `POST /v1/dispense` | `{command_id, compartment, unit_number}` | 202 new; 200 replay (never re-actuated); 409 busy/conflict; 423 not ready |

@@ -6,7 +6,7 @@ Run `C:\xampp\php\php.exe scripts/migrate.php` before using the new code. The re
 
 ## Demo coin attempts
 
-The existing `api/demo-payment.php` accepts exactly `event_id` and `coin_centavos`, with the current demo-order capability header. Denominations are **₱1, ₱5, ₱10 and ₱20**. All amounts are integer centavos. The display shows total due, amount inserted, remaining balance and accepted demo denominations, with:
+The existing `api/demo-payment.php` accepts exactly `event_id` and `coin_centavos`, with the current demo-order capability header. Denominations are **₱5, ₱10 and ₱20** (₱1 was removed on 19 November 2026; earlier ₱1 ledger rows remain as history). All amounts are integer centavos. The display shows total due, amount inserted, remaining balance and accepted demo denominations, with:
 
 > Exact payment only. This machine cannot return change.
 
