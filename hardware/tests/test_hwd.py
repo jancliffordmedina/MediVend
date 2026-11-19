@@ -436,6 +436,18 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.call("POST", "sim/beam", {"scenario": "explode"})[0], 422)
         self.assertEqual(self.call("POST", "lockout", {"engaged": True, "note": "x"})[0], 422)
 
+    def test_rejected_coin_credits_nothing_and_stays_ready(self):
+        self.assertIsNone(self.call("GET", "health")[1]["data"]["details"]["last_rejected_coin_ms"])
+        self.assertEqual(self.call("POST", "sim/reject", {"centavos": 1000})[0], 422)  # supported coins are not rejections
+        self.assertEqual(self.call("POST", "sim/reject", {"centavos": True})[0], 422)
+        status, payload = self.call("POST", "sim/reject", {"centavos": 100})
+        self.assertEqual((status, payload["data"]["rejected_coins"]), (200, 1))
+        health = self.call("GET", "health")[1]["data"]
+        self.assertEqual(health["details"]["last_rejected_coin_ms"], payload["data"]["last_rejected_coin_ms"])
+        self.assertTrue(health["ready"])
+        self.assertEqual(self.call("GET", "events")[1]["data"]["events"], [])
+        self.assertEqual(self.call("GET", "anomalies")[1]["data"]["anomalies"], [])
+
     def test_end_to_end_coin_and_dispense(self):
         self.assertEqual(self.call("POST", "sim/coin", {"centavos": 1000})[0], 202)
         events = wait_for(lambda: self.call("GET", "events")[1]["data"]["events"])

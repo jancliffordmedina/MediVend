@@ -86,6 +86,7 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-sr
         <button class="button button-primary sim-coin" data-sim-coin="500">₱5</button>
         <button class="button button-primary sim-coin" data-sim-coin="1000">₱10</button>
         <button class="button button-primary sim-coin" data-sim-coin="2000">₱20</button>
+        <button class="button button-outline sim-coin" data-sim-reject="100" title="The coin slot returns it; the kiosk shows Coin not accepted">₱1 · not accepted</button>
       </div>
       <div class="section-heading"><h2>Next dispense result</h2><span>Applies to the next unit only, then returns to normal</span></div>
       <div class="sim-grid sim-beam">

@@ -8,7 +8,8 @@ try {
     $database = medivendDatabase();
     foreach (['database/schema.sql', 'database/migrations/001_demo_coin_events.sql', 'database/updates/002_prices_10_pesos.sql',
         'database/migrations/003_twenty_peso_coins.sql', 'database/migrations/004_hardware_boundaries.sql',
-        'database/migrations/005_staff_stock.sql', 'database/migrations/006_unassigned_coins.sql', 'database/migrations/007_users_and_resolutions.sql'] as $file) {
+        'database/migrations/005_staff_stock.sql', 'database/migrations/006_unassigned_coins.sql', 'database/migrations/007_users_and_resolutions.sql',
+        'database/migrations/008_rejected_coins.sql'] as $file) {
         $sql = file_get_contents(__DIR__ . '/../' . $file);
         if ($sql === false) throw new RuntimeException('Unable to read migration: ' . $file);
         $database->exec($sql);

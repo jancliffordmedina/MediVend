@@ -12,6 +12,12 @@ try {
     if (!$order) throw new MedivendCheckoutError(404, 'order_not_found', 'Please contact clinic staff. Saved status could not be found.');
     $response = medivendDemoView($order, $key); $response['exact_payment_message'] = 'Exact payment only. No change.';
     $response['resolution'] = medivendReadResolution($database, $order['id']);
+    // Last coin the acceptor returned (unsupported denomination), for the kiosk alert.
+    $response['last_rejected_coin_ms'] = null;
+    if (medivendHardwareFlow()) {
+        $rejected = $database->query('SELECT last_rejected_coin_ms FROM hardware_machine_state WHERE id = 1')->fetchColumn();
+        $response['last_rejected_coin_ms'] = $rejected === false || $rejected === null ? null : (int) $rejected;
+    }
     $database->commit();
     echo json_encode($response, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 } catch (Throwable $error) {

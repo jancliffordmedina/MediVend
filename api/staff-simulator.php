@@ -24,6 +24,11 @@ try {
         && is_int($payload->centavos) && in_array($payload->centavos, MEDIVEND_COIN_DENOMINATIONS, true)) {
         $result = $adapter->simulate('coin', ['centavos' => $payload->centavos]);
         $text = 'Simulated ₱' . ($payload->centavos / 100) . ' coin inserted.';
+    } elseif (($payload->action ?? null) === 'reject' && medivendStaffKeys($payload, ['action', 'centavos'])
+        && is_int($payload->centavos) && $payload->centavos > 0 && $payload->centavos <= 100000
+        && !in_array($payload->centavos, MEDIVEND_COIN_DENOMINATIONS, true)) {
+        $result = $adapter->simulate('reject', ['centavos' => $payload->centavos]);
+        $text = 'Simulated ₱' . ($payload->centavos / 100) . ' coin rejected and returned. Nothing was credited.';
     } elseif (($payload->action ?? null) === 'beam' && medivendStaffKeys($payload, ['action', 'scenario'])
         && in_array($payload->scenario, ['pass', 'none', 'jam', 'double', 'late'], true)) {
         $result = $adapter->simulate('beam', ['scenario' => $payload->scenario]);

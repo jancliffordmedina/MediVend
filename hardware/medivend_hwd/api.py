@@ -13,7 +13,8 @@ Envelope: {"ok": true, "data": {...}} or {"ok": false, "error": {"code", "messag
   POST /v1/anomalies/{id}/clear         {note}
   POST /v1/maintenance/servo            {compartment, angle, hold_ms}  lockout required
   POST /v1/sim/coin                     {centavos} | {pulses, pulse_ms?}   simulator only
-  POST /v1/sim/beam                     {scenario: pass|none|jam|double|late}  simulator only
+  POST /v1/sim/reject                   {centavos}  coin the acceptor returns   simulator only
+  POST /v1/sim/beam                    {scenario: pass|none|jam|double|late}  simulator only
   POST /v1/sim/estop                    {engaged: bool}  simulator only
 """
 from __future__ import annotations
@@ -162,6 +163,12 @@ def make_handler(service: HardwareService, token: str) -> type[BaseHTTPRequestHa
                     except (TypeError, ValueError) as error:
                         raise ServiceError(422, "invalid_sim_coin", str(error)) from error
                     return 202, {"simulated": True, "pulses": pulses}
+                if method == "POST" and route == ["sim", "reject"]:
+                    centavos = body.get("centavos")
+                    if (not isinstance(centavos, int) or isinstance(centavos, bool) or not 1 <= centavos <= 100000
+                            or centavos in s.config.denominations()):
+                        raise ServiceError(422, "invalid_sim_reject", "centavos must be an unsupported coin value")
+                    return 200, {"simulated": True, **s.note_rejected_coin(f"simulated {centavos} centavos coin")}
                 if method == "POST" and route == ["sim", "beam"]:
                     try:
                         sim.queue_beam(body.get("scenario"))  # type: ignore[arg-type]

@@ -195,9 +195,11 @@
     list.prepend(item);
   };
   $('#simulator-panel').addEventListener('click', async event => {
-    const button = event.target.closest('[data-sim-coin], [data-sim-beam]');
+    const button = event.target.closest('[data-sim-coin], [data-sim-reject], [data-sim-beam]');
     if (!button || working) return;
-    const body = button.dataset.simCoin ? { action: 'coin', centavos: Number(button.dataset.simCoin) } : { action: 'beam', scenario: button.dataset.simBeam };
+    const body = button.dataset.simCoin ? { action: 'coin', centavos: Number(button.dataset.simCoin) }
+      : button.dataset.simReject ? { action: 'reject', centavos: Number(button.dataset.simReject) }
+      : { action: 'beam', scenario: button.dataset.simBeam };
     working = true;
     document.querySelectorAll('#simulator-panel button').forEach(b => { b.disabled = true; });
     try {

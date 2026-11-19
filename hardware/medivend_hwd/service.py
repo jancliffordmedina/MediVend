@@ -47,6 +47,10 @@ class HardwareService:
         self._cycle: Optional[threading.Thread] = None
         self._idle_blocked_since: Optional[int] = None
         self._last_error: Optional[str] = None
+        # Coins the acceptor returned (not a supported denomination). No money is
+        # kept, so this never blocks the machine; it only lets the kiosk say so.
+        self._rejected_coins = 0
+        self._last_rejected_coin_ms: Optional[int] = None
         self._started = time.time()
         self._ticker = threading.Thread(target=self._tick_loop, name="coin-ticker", daemon=True)
 
@@ -94,6 +98,14 @@ class HardwareService:
                 self._last_error = f"coin journal: {error}"
                 log.exception("coin processing failed")
 
+    def note_rejected_coin(self, detail: str) -> dict[str, Any]:
+        """A coin the acceptor returned to the customer. Nothing is credited."""
+        with self._lock:
+            self._rejected_coins += 1
+            self._last_rejected_coin_ms = time.time_ns() // MS
+            log.warning("coin rejected and returned: %s", detail)
+            return {"rejected_coins": self._rejected_coins, "last_rejected_coin_ms": self._last_rejected_coin_ms}
+
     # -- health ---------------------------------------------------------------
     def health(self) -> dict[str, Any]:
         probe = self.backend.probe()
@@ -134,6 +146,8 @@ class HardwareService:
                 "active_command": self._active,
                 "last_error": self._last_error,
                 "uptime_s": int(time.time() - self._started),
+                "rejected_coins": self._rejected_coins,
+                "last_rejected_coin_ms": self._last_rejected_coin_ms,
                 # Longest possible dispense cycle; the PHP delivery timeout must exceed it.
                 "max_cycle_ms": int(max(2 * c.move_ms + c.hold_ms for c in cfg.compartments.values())
                                     + cfg.beam.watch_after_return_ms + cfg.beam.max_block_ms + cfg.beam.settle_ms),

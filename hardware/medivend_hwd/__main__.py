@@ -147,7 +147,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     servo.add_argument("angle", type=float)
     servo.add_argument("--hold-ms", type=int, default=800)
     coin = sub.add_parser("sim-coin")
-    coin.add_argument("pesos", type=int, nargs="?", help="coin value in pesos: 1, 5, 10 or 20")
+    coin.add_argument("pesos", type=int, nargs="?", help="coin value in pesos: 5, 10 or 20 (any other value is rejected and shown on the kiosk)")
     coin.add_argument("--pulses", type=int)
     coin.add_argument("--pulse-ms", type=float)
     beam = sub.add_parser("sim-beam")
@@ -194,15 +194,24 @@ def main(argv: Optional[list[str]] = None) -> int:
         angle: Any = int(args.angle) if args.angle.is_integer() else args.angle
         method, path, body = "POST", "maintenance/servo", {"compartment": args.compartment, "angle": angle, "hold_ms": args.hold_ms}
     elif args.command == "sim-coin":
+        accepted = {value // 100: value for value in config.coin.pulses.values()}
+        listed = ", ".join(f"PHP {p}" for p in sorted(accepted))
         if args.pulses:
             body = {"pulses": args.pulses}
+        elif args.pesos is None or not 1 <= args.pesos <= 1000:
+            print(json.dumps({"ok": False, "error": {"code": "invalid_coin",
+                  "message": f"Give a coin value in pesos (1-1000). Accepted coins: {listed}."}}, indent=2))
+            return 1
+        elif args.pesos not in accepted:
+            # Unsupported coin: the acceptor returns it. Nothing is credited, and
+            # the kiosk shows "Coin not accepted" on the Payment screen.
+            status, payload = call(config, "POST", "sim/reject", {"centavos": args.pesos * 100})
+            if 200 <= status < 300:
+                payload["data"]["message"] = (f"PHP {args.pesos} is not an accepted coin ({listed}). "
+                                              "It was returned; the kiosk shows Coin not accepted. Nothing was credited.")
+            print(json.dumps(payload, indent=2))
+            return 0 if 200 <= status < 300 else 1
         else:
-            accepted = {value // 100: value for value in config.coin.pulses.values()}
-            if args.pesos not in accepted:
-                listed = ", ".join(f"PHP {p}" for p in sorted(accepted))
-                print(json.dumps({"ok": False, "error": {"code": "coin_not_accepted",
-                      "message": f"PHP {args.pesos} is not an accepted coin. Accepted coins: {listed}. No coin was inserted."}}, indent=2))
-                return 1
             body = {"centavos": accepted[args.pesos]}
         if args.pulse_ms:
             body["pulse_ms"] = args.pulse_ms

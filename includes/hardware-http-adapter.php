@@ -124,7 +124,7 @@ final class MedivendHttpHardwareAdapter implements MedivendHardwareAdapter
     /** Tester controls for the SIMULATED device only (coin / beam scenario). */
     public function simulate(string $what, array $body): array
     {
-        if (!$this->expectSimulated || !in_array($what, ['coin', 'beam'], true)) throw new RuntimeException('Simulator controls are only available in device_simulation mode.');
+        if (!$this->expectSimulated || !in_array($what, ['coin', 'reject', 'beam'], true)) throw new RuntimeException('Simulator controls are only available in device_simulation mode.');
         $health = $this->health();
         if (($health['simulated'] ?? false) !== true) throw new RuntimeException('The hardware service is not running its simulator.');
         [$status, $payload] = $this->request('POST', 'sim/' . $what, $body);

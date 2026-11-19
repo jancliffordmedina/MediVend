@@ -5,9 +5,16 @@ require_once __DIR__ . '/../includes/hardware-flow.php';
 
 function medivendWorkerTick(PDO $database, MedivendHardwareAdapter $adapter, array $config): bool
 {
-    $ready = medivendHardwareHealthVerified($adapter->health()) && $config['delivery_timeout_seconds'] > 0 && $config['delivery_timeout_seconds'] <= 86400;
+    $health = $adapter->health();
+    $ready = medivendHardwareHealthVerified($health) && $config['delivery_timeout_seconds'] > 0 && $config['delivery_timeout_seconds'] <= 86400;
     $heartbeat = $database->prepare('UPDATE hardware_machine_state SET health = ?, config_hash = ?, heartbeat_at = CURRENT_TIMESTAMP WHERE id = 1');
     $heartbeat->execute([$ready ? 'ready' : 'unavailable', medivendHardwareConfigHash($config)]);
+    // A returned (unsupported) coin credits nothing; only tell the kiosk about it.
+    $rejectedAt = $health['details']['last_rejected_coin_ms'] ?? null;
+    if (is_int($rejectedAt) && $rejectedAt > 0) {
+        $database->prepare('UPDATE hardware_machine_state SET last_rejected_coin_ms = ? WHERE id = 1 AND (last_rejected_coin_ms IS NULL OR last_rejected_coin_ms < ?)')
+            ->execute([$rejectedAt, $rejectedAt]);
+    }
     if (!$ready) { medivendHardwareInterrupt($database); $adapter->stop(); return false; }
     foreach ($adapter->verifiedEvents() as $event) {
         if (($event['type'] ?? '') === 'accepted_coin') {
